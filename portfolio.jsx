@@ -69,8 +69,8 @@ const PROJECTS = [
   blurb: "I solo-built Fovere, the first completely free iOS habit tracker featuring full analytics with no ads or paywalls.",
   label: "mobile app",
   icon: "assets/fovere-icon.png",
-  hero: "assets/fovere-card.png",
-  hero2x: "assets/fovere-card@2x.png",
+  hero: "assets/Frame 14.png",
+  hero2x: "assets/Frame 14.png",
   tagline: "Build & Break Habits",
   intro: "Fovere is the habit tracker for building routines you can sustain\u2014and for breaking ones you want to quit or limit. Log in seconds with swipe gestures, see your week and year in Calendar, and go deep in Analytics with trends, heatmaps, and insights. Free, with no ads, and your data stays on your device.",
   buildNote: "I made this app entirely on Cursor with Claude and Figma Make AI.",
@@ -596,14 +596,16 @@ function SectionHead({ kicker, title }) {
 
 }
 
-function ProjectMetaBadge({ children }) {
+function ProjectMetaBadge({ children, variant = "solid" }) {
+  const outline = variant === "outline";
   return (
     <span style={{
       display: "inline-block",
-      padding: "7px 13px",
-      borderRadius: "6px",
-      background: "#000",
+      padding: outline ? "6px 14px" : "7px 13px",
+      borderRadius: outline ? "999px" : "6px",
+      background: outline ? "transparent" : "#000",
       color: "#fff",
+      border: outline ? "1px solid #fff" : "none",
       fontFamily: "var(--font-body)",
       fontSize: "0.78rem",
       fontWeight: 500,
@@ -618,6 +620,45 @@ function ProjectCardLayout({ project, as = "h3", showBlurb = true, onOpen }) {
   const TitleTag = as;
   const [mediaHover, setMediaHover] = useState(false);
   const interactive = as !== "h1";
+  const overlay = interactive;
+
+  const titleEl =
+  <TitleTag style={{
+    margin: 0,
+    fontFamily: "var(--font-display)",
+    fontWeight: 600,
+    fontSize: as === "h1" ?
+    "clamp(1.9rem, 3vw, 2.35rem)" :
+    "clamp(1.75rem, 2.6vw, 2rem)",
+    letterSpacing: "-0.02em",
+    lineHeight: 1.08,
+    color: overlay ? "#fff" : "var(--ink)"
+  }}>
+    {project.title}
+    {interactive &&
+    <span
+      aria-hidden="true"
+      className="project-card__arrow"
+      style={{
+        display: "inline-block",
+        marginLeft: "0.28em",
+        opacity: mediaHover ? 1 : 0,
+        transform: mediaHover ? "translateX(0)" : "translateX(-5px)",
+        transition: "opacity .28s ease, transform .28s ease"
+      }}>→</span>
+    }
+  </TitleTag>;
+
+  const badgesEl =
+  <div className="project-card__badges" style={{
+    display: "flex",
+    gap: "8px",
+    flexWrap: "wrap",
+    flexShrink: 0
+  }}>
+    {project.year && <ProjectMetaBadge variant={overlay ? "outline" : "solid"}>{project.year}</ProjectMetaBadge>}
+    {project.topic && <ProjectMetaBadge variant={overlay ? "outline" : "solid"}>{project.topic}</ProjectMetaBadge>}
+  </div>;
 
   return (
     <div className="project-card-layout" style={{
@@ -632,6 +673,7 @@ function ProjectCardLayout({ project, as = "h3", showBlurb = true, onOpen }) {
         maxWidth: "var(--project-block-w)",
         alignSelf: "flex-end"
       }}>
+        {!overlay &&
         <div className="project-card__head" style={{
           display: "flex",
           alignItems: "center",
@@ -639,46 +681,26 @@ function ProjectCardLayout({ project, as = "h3", showBlurb = true, onOpen }) {
           gap: "12px",
           marginBottom: "2px"
         }}>
-          <TitleTag style={{
-            margin: 0,
-            fontFamily: "var(--font-display)",
-            fontWeight: 600,
-            fontSize: as === "h1" ?
-            "clamp(1.5rem, 2.8vw, 2.1rem)" :
-            "clamp(1.2rem, 2.2vw, 1.65rem)",
-            letterSpacing: "-0.02em",
-            lineHeight: 1.08,
-            color: "var(--ink)"
-          }}>
-            {project.title}
-            {interactive &&
-            <span
-              aria-hidden="true"
-              className="project-card__arrow"
-              style={{
-                display: "inline-block",
-                marginLeft: "0.28em",
-                opacity: mediaHover ? 1 : 0,
-                transform: mediaHover ? "translateX(0)" : "translateX(-5px)",
-                transition: "opacity .28s ease, transform .28s ease"
-              }}>→</span>
-            }
-          </TitleTag>
-          <div className="project-card__badges" style={{
-            display: "flex",
-            gap: "8px",
-            flexShrink: 0
-          }}>
-            {project.year && <ProjectMetaBadge>{project.year}</ProjectMetaBadge>}
-            {project.topic && <ProjectMetaBadge>{project.topic}</ProjectMetaBadge>}
-          </div>
+          {titleEl}
+          {badgesEl}
         </div>
+        }
         <ProjectMedia
           project={project}
-          hovered={mediaHover}
           interactive={interactive}
           onHoverChange={setMediaHover}
-          onOpen={onOpen} />
+          onOpen={onOpen}
+          overlay={overlay ?
+          <div className="project-media__overlay" style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "flex-start",
+            gap: "10px"
+          }}>
+            {titleEl}
+            {badgesEl}
+          </div> :
+          null} />
         {showBlurb && as !== "h1" && (project.blurb || project.tagline) &&
         <p className="project-card__blurb" style={{
           margin: "10px 0 0",
@@ -692,7 +714,7 @@ function ProjectCardLayout({ project, as = "h3", showBlurb = true, onOpen }) {
 
 }
 
-function ProjectMedia({ project, hovered = false, interactive = false, onHoverChange, onOpen }) {
+function ProjectMedia({ project, interactive = false, onHoverChange, onOpen, overlay = null }) {
   const [failed, setFailed] = useState(false);
 
   const wrapProps = interactive ? {
@@ -711,15 +733,36 @@ function ProjectMedia({ project, hovered = false, interactive = false, onHoverCh
     style: { cursor: "pointer" }
   } : {};
 
+  const wrapStyle = {
+    position: "relative",
+    overflow: "hidden",
+    borderRadius: "32px",
+    ...wrapProps.style
+  };
+
   const mediaStyle = {
     width: "100%",
     height: "var(--project-media-h)",
     display: "block",
-    borderRadius: "6px",
-    background: "oklch(0.93 var(--tone-c) var(--tone-h))",
-    transform: interactive && hovered ? "scale(1.06)" : "scale(1)",
-    transition: "transform .45s ease"
+    borderRadius: "14px",
+    background: "oklch(0.93 var(--tone-c) var(--tone-h))"
   };
+
+  const overlayEl = overlay &&
+  <div
+    className="project-media__overlay-wrap"
+    style={{
+      position: "absolute",
+      inset: 0,
+      display: "flex",
+      flexDirection: "column",
+      justifyContent: "flex-end",
+      padding: "clamp(18px, 3vw, 28px)",
+      background: "linear-gradient(to top, rgba(0,0,0,0.62) 0%, rgba(0,0,0,0.18) 45%, transparent 100%)",
+      pointerEvents: "none"
+    }}>
+    {overlay}
+  </div>;
 
   if (project.hero && !failed) {
     const srcSet = project.hero2x ?
@@ -730,11 +773,7 @@ function ProjectMedia({ project, hovered = false, interactive = false, onHoverCh
       <div
         className="project-media-wrap"
         {...wrapProps}
-        style={{
-          overflow: "hidden",
-          borderRadius: "6px",
-          ...wrapProps.style
-        }}>
+        style={wrapStyle}>
         <img
           src={project.hero2x || project.hero}
           srcSet={srcSet}
@@ -747,6 +786,7 @@ function ProjectMedia({ project, hovered = false, interactive = false, onHoverCh
             objectFit: "cover",
             objectPosition: "center"
           }} />
+        {overlayEl}
       </div>);
 
   }
@@ -755,11 +795,7 @@ function ProjectMedia({ project, hovered = false, interactive = false, onHoverCh
     <div
       className="project-media-wrap"
       {...wrapProps}
-      style={{
-        overflow: "hidden",
-        borderRadius: "6px",
-        ...wrapProps.style
-      }}>
+      style={wrapStyle}>
       <div
         className="project-placeholder"
         aria-hidden="true"
@@ -767,6 +803,7 @@ function ProjectMedia({ project, hovered = false, interactive = false, onHoverCh
           ...mediaStyle,
           border: "1px solid var(--line)"
         }} />
+      {overlayEl}
     </div>);
 
 }
