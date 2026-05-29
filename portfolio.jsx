@@ -228,6 +228,27 @@ function Hero({ layout, setView }) {
   return <LandingHero setView={setView} />;
 }
 
+function HoverWeightName({ text, style }) {
+  return (
+    <div
+      className="name-display"
+      aria-label={text}
+      style={style}>
+      {text.split("").map((char, i) =>
+      char === " " ?
+      <span key={i} className="name-display__space" aria-hidden="true">
+            &nbsp;
+          </span> :
+
+      <span key={i} className="name-display__char" aria-hidden="true">
+            {char}
+          </span>
+
+      )}
+    </div>);
+
+}
+
 function BigLink({ label, onClick }) {
   return (
     <button
@@ -286,7 +307,7 @@ function LandingHero({ setView }) {
           <div style={{ paddingTop: "clamp(6px, 1.2vw, 14px)" }}>
             <p style={{
               margin: 0, fontFamily: '"Inter Tight", system-ui, sans-serif', fontWeight: 700,
-              fontSize: "clamp(1.1rem, 1.8vw, 1.5rem)", lineHeight: 1.3, letterSpacing: "-0.01em",
+              fontSize: "clamp(1.4rem, 2.4vw, 1.9rem)", lineHeight: 1.3, letterSpacing: "-0.01em",
               whiteSpace: "nowrap"
             }}>
               Data Analytics &amp; <span style={{ color: "var(--accent)" }}>AI enthusiast.</span>
@@ -294,7 +315,7 @@ function LandingHero({ setView }) {
             <p style={{
               margin: "clamp(22px, 3vw, 36px) 0 0", maxWidth: "34ch",
               fontFamily: '"Inter Tight", system-ui, sans-serif', fontWeight: 700,
-              fontSize: "clamp(1.05rem, 1.6vw, 1.35rem)", lineHeight: 1.5, letterSpacing: "-0.005em"
+              fontSize: "clamp(1.25rem, 2vw, 1.65rem)", lineHeight: 1.5, letterSpacing: "-0.005em"
             }}>
               I like to create digital things that have value to people.
             </p>
@@ -302,15 +323,16 @@ function LandingHero({ setView }) {
         </div>
       </div>
 
-      <div style={{
-        fontFamily: "var(--font-display)", fontWeight: 700,
-        textTransform: "uppercase",
-        lineHeight: 0.86,
-        letterSpacing: "-0.045em", whiteSpace: "nowrap", textAlign: "center",
-        margin: "var(--landing-text-name-gap) 0 0", padding: "1px 0 0",
-        userSelect: "none", color: "var(--accent)",
-        fontSize: "clamp(2.85rem, 14.5vw, 10rem)"
-      }}>Franco&nbsp;Galluzzo</div>
+      <HoverWeightName
+        text="Franco Galluzzo"
+        style={{
+          textTransform: "uppercase",
+          lineHeight: 0.86,
+          letterSpacing: "-0.045em", whiteSpace: "nowrap", textAlign: "center",
+          margin: "var(--landing-text-name-gap) 0 0", padding: "1px 0 0",
+          userSelect: "none", color: "var(--accent)",
+          fontSize: "clamp(2.85rem, 14.5vw, 10rem)"
+        }} />
     </section>);
 
 }
@@ -635,8 +657,24 @@ styleEl.textContent = `
     color: var(--accent);
   }
 
+  .name-display {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-synthesis: none;
+  }
+  .name-display__char {
+    display: inline-block;
+    font-weight: inherit;
+    cursor: default;
+    transition: font-weight 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .name-display__char:hover {
+    font-weight: 900;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .big-link { transition-duration: 0.15s; }
+    .name-display__char { transition-duration: 0.12s; }
   }
   @media (max-width: 720px) {
     .hero-editorial { grid-template-columns: 1fr !important; }
