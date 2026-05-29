@@ -48,33 +48,60 @@ const DENSITY = {
   airy: { padX: "9vw", sectionY: "168px", gap: "40px", hero: "clamp(3rem, 7vw, 6.6rem)", fs: "18px" }
 };
 
+const LANDING_TAGLINE = {
+  fontFamily: '"Inter Tight", system-ui, sans-serif',
+  fontWeight: 700,
+  letterSpacing: "-0.005em",
+  lineHeight: 1.5
+};
+
 /* ============================================================
    CONTENT  (realistic placeholders — swap for real work)
    ============================================================ */
 const PROJECTS = [
 {
   n: "01",
-  title: "Velocity rules for card-not-present fraud",
-  meta: "Risk modeling · 2025",
-  blurb: "A tunable velocity rule set that cut CNP chargebacks without adding friction for good customers.",
-  label: "rule engine",
-  shade: 0.955
-},
-{
-  n: "02",
-  title: "Real-time transaction risk dashboard",
-  meta: "Internal tooling · 2024",
-  blurb: "An analyst-facing dashboard that scores transactions live and surfaces the few worth a second look.",
-  label: "dashboard UI",
-  shade: 0.93
-},
-{
-  n: "03",
-  title: "Account-takeover investigation playbook",
-  meta: "Process & docs · 2023",
-  blurb: "A plain-language playbook so anyone on the team can run an ATO case the same way, start to finish.",
-  label: "documentation",
-  shade: 0.905
+  slug: "fovere",
+  title: "Fovere",
+  meta: "Habit tracker · iOS · 2025",
+  blurb: "Fovere is my solo-built iOS habit tracker. Free, no ads, no login. Just a tool I created because I wanted something honest that actually helped me see my habits clearly with analytics.",
+  label: "mobile app",
+  icon: "assets/fovere-icon.png",
+  hero: "assets/fovere-hero.png",
+  tagline: "Build & Break Habits",
+  intro: "Fovere is the habit tracker for building routines you can sustain\u2014and for breaking ones you want to quit or limit. Log in seconds with swipe gestures, see your week and year in Calendar, and go deep in Analytics with trends, heatmaps, and insights. Free, with no ads, and your data stays on your device.",
+  buildNote: "I made this app entirely on Cursor with Claude and Figma Make AI.",
+  sections: [
+    {
+      title: "Home & logging",
+      body: "Your habits live on one clear Home screen: daily habits power the completion ring; break habits (reduce, cap, or quit) stay separate; weekly and monthly goals have their own sections so schedules are never mixed up. Swipe left to complete, swipe right to pause or delete\u2014with undo when you slip."
+    },
+    {
+      title: "Build & break habits",
+      body: "Create build habits (do more) or break habits (stay under a limit or avoid the behavior). Track with simple completion, quantity counts, or timed durations. Set targets or limits, pick an emoji, add notes, and configure reminders\u2014including per-habit times and weekday schedules for weekly habits."
+    },
+    {
+      title: "Daily, weekly & monthly",
+      body: "Daily habits are checked every day. Weekly and monthly habits accumulate progress across the week or calendar month\u2014the app explains how streaks treat these fairly so long-window goals do not unfairly break your consistency day by day."
+    },
+    {
+      title: "Scoring you can trust",
+      body: "A transparent 0\u2013100 daily score splits 100 points across active habits. Build habits earn their share when completed; break habits start at full credit and lose points only for today overflow past your limit. Optional strict mode counts only full completions, or allows partial progress\u2014your choice."
+    },
+    {
+      title: "Calendar & analytics",
+      body: "Calendar shows weekly and monthly completion, streaks, and a yearly view including Year in Beans. Analytics spans from recent days up to long ranges (including 6 months and a year), with habit heatmaps, trend vs prior periods, weekly rhythm (best and toughest days), habit movers, and per-habit completion and break-habit limit history."
+    },
+    {
+      title: "Reminders & control",
+      body: "Daily check-in reminders plus habit-specific notifications. Export habits to CSV, recover deleted habits for 30 days, pause without erasing history. Dark mode, English or Spanish, week start Sunday or Monday, haptic feedback."
+    },
+    {
+      title: "Privacy",
+      body: "No analytics SDKs, no ads, no tracking. Fovere does not upload your habits to a server; everything you enter is stored locally on your phone."
+    }
+  ],
+  closing: "Download Fovere and start with one habit so easy you cannot say no."
 }];
 
 
@@ -158,6 +185,41 @@ function Mono({ children, style }) {
       color: "var(--ink-3)", whiteSpace: "nowrap", ...style
     }}>{children}</span>);
 
+}
+
+function ProjectImage({ src, alt, ratio = 16 / 11, natural = false, style }) {
+  if (natural) {
+    return (
+      <div style={{
+        width: "100%",
+        border: "1px solid var(--line)",
+        overflow: "hidden",
+        background: "oklch(0.97 var(--tone-c) var(--tone-h))",
+        ...style
+      }}>
+        <img
+          src={src}
+          alt={alt}
+          loading="lazy"
+          style={{ width: "100%", height: "auto", display: "block" }}
+        />
+      </div>);
+  }
+
+  return (
+    <div style={{
+      position: "relative", width: "100%", aspectRatio: String(ratio),
+      border: "1px solid var(--line)", overflow: "hidden",
+      background: "oklch(0.97 var(--tone-c) var(--tone-h))",
+      ...style
+    }}>
+      <img
+        src={src}
+        alt={alt}
+        loading="lazy"
+        style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+      />
+    </div>);
 }
 
 /* striped placeholder block — stands in for an image */
@@ -336,7 +398,7 @@ function MiniLineGraph() {
           { strokeDashoffset: 0 },
           { strokeDashoffset: -len },
         ],
-        { duration: 1600, easing: "linear", iterations: Infinity }
+        { duration: 2000, easing: "linear", iterations: Infinity }
       );
     };
 
@@ -431,7 +493,7 @@ function LandingHero({ setView }) {
 
             <p className="landing-top__tagline-headline" style={{
               margin: 0,
-              fontFamily: '"Inter Tight", system-ui, sans-serif', fontWeight: 700,
+              ...LANDING_TAGLINE,
               fontSize: "clamp(1.4rem, 2.4vw, 1.9rem)", lineHeight: 1.3, letterSpacing: "-0.01em",
               whiteSpace: "nowrap"
             }}>
@@ -440,8 +502,8 @@ function LandingHero({ setView }) {
 
             <p className="landing-top__tagline-body" style={{
               margin: 0, maxWidth: "34ch",
-              fontFamily: '"Inter Tight", system-ui, sans-serif', fontWeight: 700,
-              fontSize: "clamp(1.25rem, 2vw, 1.65rem)", lineHeight: 1.5, letterSpacing: "-0.005em"
+              ...LANDING_TAGLINE,
+              fontSize: "clamp(1.25rem, 2vw, 1.65rem)"
             }}>
               I like to create digital things that have value to people.
             </p>
@@ -466,6 +528,31 @@ function LandingHero({ setView }) {
 /* ============================================================
    PROJECTS
    ============================================================ */
+function LandingSectionHead({ title, kicker }) {
+  return (
+    <div style={{
+      marginBottom: "var(--gap)",
+      paddingBottom: "18px",
+      borderBottom: "1px solid var(--line)"
+    }}>
+      <div className="landing-top" style={{
+        display: "grid",
+        gridTemplateColumns: "1.5fr 1fr",
+        columnGap: "var(--landing-menu-text-gap)",
+        alignItems: "baseline",
+        width: "100%"
+      }}>
+        <h2 style={{
+          margin: 0, gridColumn: 1, maxWidth: "34ch",
+          ...LANDING_TAGLINE,
+          fontSize: "clamp(1.25rem, 2vw, 1.65rem)"
+        }}>{title}</h2>
+        <Mono style={{ gridColumn: 2, textAlign: "right", justifySelf: "stretch" }}>{kicker}</Mono>
+      </div>
+    </div>);
+
+}
+
 function SectionHead({ kicker, title }) {
   return (
     <div style={{
@@ -482,53 +569,172 @@ function SectionHead({ kicker, title }) {
 
 }
 
-function ProjectCard({ p, indexed }) {
+function ProjectBrand({ project, size = "card", hover = false }) {
+  const isCard = size === "card";
+  const iconSize = isCard ?
+  "clamp(100px, 18vw, 140px)" :
+  "clamp(112px, 22vw, 168px)";
+
+  return (
+    <div style={{
+      display: "flex",
+      flexDirection: isCard ? "row" : "column",
+      alignItems: isCard ? "flex-start" : "center",
+      textAlign: isCard ? "left" : "center",
+      gap: isCard ? "clamp(20px, 3vw, 28px)" : "18px",
+      width: isCard ? "100%" : undefined,
+      maxWidth: isCard ? "100%" : undefined
+    }}>
+      {project.icon &&
+      <img
+        src={project.icon}
+        alt=""
+        aria-hidden="true"
+        style={{
+          width: iconSize, height: iconSize,
+          borderRadius: "22%",
+          flexShrink: 0,
+          boxShadow: "0 12px 40px oklch(0.2 var(--tone-c) var(--tone-h) / 0.12)"
+        }} />
+      }
+      <div style={{ minWidth: 0, flex: isCard ? 1 : undefined, maxWidth: isCard ? "50%" : undefined }}>
+        {size === "detail" ?
+        <h1 style={{
+          margin: 0,
+          ...LANDING_TAGLINE,
+          fontSize: "clamp(1.4rem, 2.4vw, 1.9rem)", lineHeight: 1.3, letterSpacing: "-0.01em",
+          color: "var(--ink)"
+        }}>{project.title}</h1> :
+        <h3 style={{
+          margin: 0,
+          ...LANDING_TAGLINE,
+          fontSize: "clamp(1.25rem, 2vw, 1.65rem)",
+          color: hover ? "var(--accent)" : "var(--ink)",
+          transition: "color .2s ease"
+        }}>{project.title}</h3>
+        }
+        {(project.tagline || project.blurb) &&
+        <p style={{
+          margin: size === "detail" ? "10px auto 0" : "6px 0 0",
+          maxWidth: size === "detail" ? "36ch" : undefined,
+          ...LANDING_TAGLINE,
+          fontSize: size === "detail" ?
+          "clamp(1.25rem, 2vw, 1.65rem)" :
+          "clamp(1.05rem, 1.6vw, 1.25rem)",
+          color: "var(--ink-2)"
+        }}>{isCard ? project.blurb || project.tagline : project.tagline || project.blurb}</p>
+        }
+      </div>
+    </div>);
+
+}
+
+function ProjectCard({ p, indexed, onOpen }) {
   const [hover, setHover] = useState(false);
   return (
     <article
+      onClick={() => onOpen(p.slug)}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{ cursor: "pointer" }}>
-      
-      <div style={{
-        transition: "transform .5s cubic-bezier(.2,.7,.2,1)",
-        transform: hover ? "translateY(-4px)" : "none"
-      }}>
-        <Placeholder shade={p.shade} label={p.label} ratio={16 / 11} />
-      </div>
-      <div style={{ display: "flex", gap: "14px", marginTop: "16px" }}>
-        {indexed && <Mono style={{ paddingTop: "3px" }}>{p.n}</Mono>}
-        <div>
-          <h3 style={{
-            margin: 0, fontFamily: "var(--font-display)", fontWeight: 500,
-            fontSize: "1.12rem", letterSpacing: "-0.005em", lineHeight: 1.25,
-            color: hover ? "var(--accent)" : "var(--ink)",
-            textDecoration: hover ? "underline" : "none",
-            textDecorationColor: "var(--accent)",
-            textUnderlineOffset: "3px", textDecorationThickness: "1px",
-            transition: "color .2s ease"
-          }}>{p.title}</h3>
-          <Mono style={{ display: "block", marginTop: "7px" }}>{p.meta}</Mono>
-          <p style={{ margin: "12px 0 0", maxWidth: "42ch", color: "var(--ink-2)", fontSize: "0.97rem" }}>{p.blurb}</p>
-        </div>
-      </div>
+      {indexed && <Mono style={{ display: "block", marginBottom: "12px" }}>{p.n}</Mono>}
+      <ProjectBrand project={p} size="card" hover={hover} />
     </article>);
 
 }
 
-function ProjectsView({ layout }) {
+function ProjectDetailView({ project, onBack }) {
+  return (
+    <main style={{ padding: "var(--header-body-gap) 0 var(--section-y)" }}>
+      <div style={{
+        padding: "0 var(--pad-x)",
+        maxWidth: "var(--maxw)",
+        margin: "0 auto"
+      }}>
+        <button
+          type="button"
+          onClick={onBack}
+          style={{
+            all: "unset", cursor: "pointer", display: "inline-flex",
+            alignItems: "center", gap: "8px", marginBottom: "clamp(24px, 3vw, 36px)"
+          }}>
+          <Mono style={{ color: "var(--ink-2)" }}>&larr; Back to projects</Mono>
+        </button>
+      </div>
+
+      <div style={{
+        padding: "0 var(--pad-x)",
+        maxWidth: "760px",
+        margin: "0 auto"
+      }}>
+        <div style={{ marginBottom: "clamp(32px, 4vw, 48px)" }}>
+          <ProjectBrand project={project} size="detail" />
+        </div>
+
+        <Mono style={{
+          display: "block", textAlign: "center",
+          marginBottom: "clamp(24px, 3vw, 36px)"
+        }}>{project.meta}</Mono>
+
+        {project.intro &&
+        <p style={{
+          margin: "0 0 clamp(20px, 3vw, 28px)",
+          fontSize: "clamp(1.05rem, 2vw, 1.2rem)", lineHeight: 1.6, color: "var(--ink)"
+        }}>{project.intro}</p>
+        }
+
+        {project.buildNote &&
+        <p style={{
+          margin: "0 0 clamp(32px, 4vw, 48px)",
+          padding: "16px 18px",
+          borderLeft: "3px solid var(--accent)",
+          background: "oklch(0.975 var(--tone-c) var(--tone-h))",
+          fontSize: "0.98rem", lineHeight: 1.55, color: "var(--ink-2)"
+        }}>{project.buildNote}</p>
+        }
+
+        {project.sections?.map((section) =>
+        <section key={section.title} style={{ marginBottom: "clamp(28px, 4vw, 40px)" }}>
+          <h2 style={{
+            margin: "0 0 10px", fontFamily: "var(--font-display)", fontWeight: 600,
+            fontSize: "1.05rem", letterSpacing: "-0.01em"
+          }}>{section.title}</h2>
+          <p style={{ margin: 0, color: "var(--ink-2)", lineHeight: 1.65 }}>{section.body}</p>
+        </section>
+        )}
+
+        {project.closing &&
+        <p style={{
+          margin: "clamp(32px, 4vw, 48px) 0 0",
+          fontSize: "1.05rem", lineHeight: 1.55, color: "var(--ink)"
+        }}>{project.closing}</p>
+        }
+      </div>
+    </main>);
+
+}
+
+function ProjectsView({ layout, onOpenProject }) {
   const indexed = layout === "editorial";
   return (
     <main id="work" style={{
-      padding: "clamp(48px, 8vh, 88px) var(--pad-x) var(--section-y)",
-      maxWidth: "var(--maxw)"
+      padding: "clamp(48px, 8vh, 88px) var(--pad-x) var(--section-y)"
     }}>
-      <SectionHead title="Selected work" kicker={`${PROJECTS.length} projects`} />
-      <div style={{
-        display: "grid", gap: "calc(var(--gap) + 16px) var(--gap)",
-        gridTemplateColumns: "repeat(auto-fill, minmax(330px, 1fr))"
+      <LandingSectionHead
+        title="Projects"
+        kicker={`${PROJECTS.length} project${PROJECTS.length === 1 ? "" : "s"}`}
+      />
+      <div className="landing-top" style={{
+        display: "grid",
+        gridTemplateColumns: "1.5fr 1fr",
+        columnGap: "var(--landing-menu-text-gap)",
+        width: "100%"
       }}>
-        {PROJECTS.map((p) => <ProjectCard key={p.n} p={p} indexed={indexed} />)}
+        <div style={{ gridColumn: "1 / -1", display: "grid", gap: "var(--gap)" }}>
+          {PROJECTS.map((p) =>
+          <ProjectCard key={p.n} p={p} indexed={indexed} onOpen={onOpenProject} />
+          )}
+        </div>
       </div>
     </main>);
 
@@ -675,13 +881,28 @@ function Footer() {
 function App() {
   const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
   const [view, setView] = useState("Projects");
+  const [activeProject, setActiveProject] = useState(null);
 
   const setViewAndTop = useCallback((v) => {
+    setActiveProject(null);
     setView(v);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
 
-  const showHeader = view !== "Projects";
+  const openProject = useCallback((slug) => {
+    const project = PROJECTS.find((p) => p.slug === slug);
+    if (!project) return;
+    setActiveProject(project);
+    setView("Projects");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, []);
+
+  const closeProject = useCallback(() => {
+    setActiveProject(null);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, []);
+
+  const showHeader = view !== "Projects" || activeProject !== null;
 
   // apply tweaks to CSS variables
   useEffect(() => {
@@ -711,10 +932,13 @@ function App() {
     <div>
       {showHeader && <SiteHeader view={view} setView={setViewAndTop} />}
       <div key={view + t.layout} className="view-fade">
-        {view === "Projects" &&
+        {view === "Projects" && activeProject &&
+        <ProjectDetailView project={activeProject} onBack={closeProject} />
+        }
+        {view === "Projects" && !activeProject &&
         <React.Fragment>
             <Hero layout={t.layout} setView={setViewAndTop} />
-            <ProjectsView layout={t.layout} />
+            <ProjectsView layout={t.layout} onOpenProject={openProject} />
           </React.Fragment>
         }
         {view === "Photography" && <PhotographyView gallery={t.gallery} />}
