@@ -9,7 +9,7 @@ const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
   "gallery": "uniform",
   "grayTone": "neutral",
   "layout": "minimal",
-  "accent": "#CE8E33"
+  "accent": "#F59425"
 } /*EDITMODE-END*/;
 
 const FONT_PAIRS = {
@@ -118,7 +118,7 @@ function SiteHeader({ view, setView }) {
         style={{
           all: "unset", cursor: "pointer",
           fontFamily: "var(--font-display)", fontWeight: 600,
-          fontSize: "0.95rem", letterSpacing: "-0.02em"
+          fontSize: "0.8rem", letterSpacing: "-0.02em"
         }}>
         Franco Galluzzo
       </button>
@@ -131,7 +131,7 @@ function SiteHeader({ view, setView }) {
               onClick={() => go(item)}
               style={{
                 all: "unset", cursor: "pointer",
-                fontFamily: "var(--font-meta)", fontSize: "0.72rem",
+                fontFamily: "var(--font-meta)", fontSize: "0.62rem",
                 letterSpacing: "var(--meta-tracking)",
                 textTransform: "var(--meta-transform)",
                 color: active ? "var(--ink)" : "var(--ink-3)",
@@ -229,22 +229,21 @@ function Hero({ layout, setView }) {
 }
 
 function BigLink({ label, onClick }) {
-  const [h, setH] = useState(false);
   return (
     <button
+      type="button"
+      className="big-link"
       onClick={onClick}
-      onMouseEnter={() => setH(true)}
-      onMouseLeave={() => setH(false)}
       style={{
-        all: "unset", cursor: "pointer", display: "block",
+        display: "inline-block", width: "fit-content", maxWidth: "100%",
+        cursor: "pointer", margin: 0, padding: 0,
+        background: "none", border: "none", textAlign: "left",
         fontFamily: "var(--font-display)", fontWeight: 700,
-        fontSize: "clamp(3rem, 7.8vw, 7.5rem)", lineHeight: 1.0,
-        letterSpacing: "-0.03em", textTransform: "uppercase",
-        color: h ? "var(--accent)" : "var(--ink)",
-        transform: h ? "translateX(14px)" : "none",
-        transition: "color .25s ease, transform .35s cubic-bezier(.2,.7,.2,1)"
+        fontSize: "clamp(2.4rem, 6.2vw, 6rem)", lineHeight: 1.0,
+        letterSpacing: "-0.03em", textTransform: "uppercase"
       }}>
-      {label}</button>);
+      {label}
+    </button>);
 
 }
 
@@ -271,14 +270,14 @@ function LandingHero({ setView }) {
 
       <div style={{
         display: "flex", alignItems: "flex-start",
-        padding: "clamp(12px, 3vh, 32px) var(--pad-x) 0"
+        padding: "var(--header-body-gap) var(--pad-x) 0"
       }}>
         <div className="landing-top" style={{
           display: "grid", gridTemplateColumns: "1.5fr 1fr",
-          gap: "clamp(24px, 4vw, 60px)", alignItems: "flex-start",
+          gap: "var(--landing-menu-text-gap)", alignItems: "flex-start",
           width: "100%"
         }}>
-          <div style={{ display: "flex", flexDirection: "column", gap: "clamp(2px, 0.4vw, 8px)" }}>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: "clamp(2px, 0.4vw, 8px)" }}>
             <BigLink label="Projects" onClick={scrollToWork} />
             <BigLink label="Photos" onClick={() => setView("Photography")} />
             <BigLink label="About" onClick={() => setView("About")} />
@@ -287,18 +286,17 @@ function LandingHero({ setView }) {
           <div style={{ paddingTop: "clamp(6px, 1.2vw, 14px)" }}>
             <p style={{
               margin: 0, fontFamily: '"Inter Tight", system-ui, sans-serif', fontWeight: 700,
-              fontSize: "clamp(1.1rem, 1.8vw, 1.5rem)", lineHeight: 1.3, letterSpacing: "-0.01em"
+              fontSize: "clamp(1.1rem, 1.8vw, 1.5rem)", lineHeight: 1.3, letterSpacing: "-0.01em",
+              whiteSpace: "nowrap"
             }}>
-              Reducing fraud through<br />
-              <span style={{ color: "var(--accent)" }}>clearer signal.</span>
+              Data Analytics &amp; <span style={{ color: "var(--accent)" }}>AI enthusiast.</span>
             </p>
             <p style={{
               margin: "clamp(22px, 3vw, 36px) 0 0", maxWidth: "34ch",
               fontFamily: '"Inter Tight", system-ui, sans-serif', fontWeight: 700,
               fontSize: "clamp(1.05rem, 1.6vw, 1.35rem)", lineHeight: 1.5, letterSpacing: "-0.005em"
             }}>
-              I specialize in turning noisy transaction data into a few clear decisions &mdash;
-              and stopping the bad ones before they clear.
+              I like to create digital things that have value to people.
             </p>
           </div>
         </div>
@@ -309,9 +307,9 @@ function LandingHero({ setView }) {
         textTransform: "uppercase",
         lineHeight: 0.86,
         letterSpacing: "-0.045em", whiteSpace: "nowrap", textAlign: "center",
-        margin: "clamp(36px, 6vh, 72px) 0 0", padding: "1px 0 0",
+        margin: "var(--landing-text-name-gap) 0 0", padding: "1px 0 0",
         userSelect: "none", color: "var(--accent)",
-        fontSize: "clamp(2.75rem, 14.5vw, 9.5rem)"
+        fontSize: "clamp(2.85rem, 14.5vw, 10rem)"
       }}>Franco&nbsp;Galluzzo</div>
     </section>);
 
@@ -455,7 +453,7 @@ function PhotographyView({ gallery }) {
   { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(210px, 1fr))", gap: "var(--gap)" };
 
   return (
-    <main style={{ padding: "clamp(24px, 3.5vh, 40px) var(--pad-x) var(--section-y)" }}>
+    <main style={{ padding: "var(--header-body-gap) var(--pad-x) var(--section-y)" }}>
       <div style={{ maxWidth: "var(--maxw)", margin: "0 auto" }}>
         <SectionHead title="Photography" kicker="hover or tap to look closer" />
         <div style={gridStyle}>
@@ -487,7 +485,7 @@ function PhotographyView({ gallery }) {
 function AboutView() {
   return (
     <main style={{
-      padding: "clamp(24px, 3.5vh, 40px) var(--pad-x) var(--section-y)",
+      padding: "var(--header-body-gap) var(--pad-x) var(--section-y)",
       maxWidth: "760px"
     }}>
       <SectionHead title="About" kicker="one paragraph" />
@@ -610,7 +608,7 @@ function App() {
 
         <TweakSection label="Tone" />
         <TweakColor label="Accent" value={t.accent}
-        options={["#CE8E33", "#111111", "#5B6B82", "#B4452F"]}
+        options={["#F59425", "#111111", "#5B6B82", "#B4452F"]}
         onChange={(v) => setTweak("accent", v)} />
         <TweakRadio label="Grays" value={t.grayTone}
         options={["cool", "neutral", "warm"]}
@@ -625,6 +623,21 @@ const styleEl = document.createElement("style");
 styleEl.textContent = `
   .view-fade { animation: viewFade .42s cubic-bezier(.2,.7,.2,1); }
   @keyframes viewFade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  .big-link {
+    width: fit-content;
+    max-width: 100%;
+    color: var(--ink);
+    transition: color 0.65s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .big-link:hover,
+  .big-link:focus-visible {
+    color: var(--accent);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .big-link { transition-duration: 0.15s; }
+  }
   @media (max-width: 720px) {
     .hero-editorial { grid-template-columns: 1fr !important; }
     .landing-top { grid-template-columns: 1fr !important; gap: 28px !important; }
