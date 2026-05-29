@@ -600,22 +600,25 @@ function ProjectMetaBadge({ children }) {
   return (
     <span style={{
       display: "inline-block",
-      padding: "7px 11px",
+      padding: "7px 13px",
+      borderRadius: "6px",
       background: "#000",
       color: "#fff",
-      fontFamily: "var(--font-meta)",
-      fontSize: "0.68rem",
+      fontFamily: "var(--font-body)",
+      fontSize: "0.78rem",
       fontWeight: 500,
-      letterSpacing: "0.05em",
-      textTransform: "uppercase",
+      letterSpacing: "0.01em",
       lineHeight: 1,
       whiteSpace: "nowrap"
     }}>{children}</span>);
 
 }
 
-function ProjectCardLayout({ project, as = "h3", hover = false }) {
+function ProjectCardLayout({ project, as = "h3", showBlurb = true, onOpen }) {
   const TitleTag = as;
+  const [mediaHover, setMediaHover] = useState(false);
+  const interactive = as !== "h1";
+
   return (
     <div className="project-card-layout" style={{
       display: "flex",
@@ -624,7 +627,7 @@ function ProjectCardLayout({ project, as = "h3", hover = false }) {
       <div className="project-card__block" style={{
         display: "flex",
         flexDirection: "column",
-        gap: "4px",
+        gap: 0,
         width: "min(100%, var(--project-block-w))",
         maxWidth: "var(--project-block-w)",
         alignSelf: "flex-end"
@@ -633,7 +636,8 @@ function ProjectCardLayout({ project, as = "h3", hover = false }) {
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          gap: "12px"
+          gap: "12px",
+          marginBottom: "2px"
         }}>
           <TitleTag style={{
             margin: 0,
@@ -643,9 +647,23 @@ function ProjectCardLayout({ project, as = "h3", hover = false }) {
             "clamp(1.5rem, 2.8vw, 2.1rem)" :
             "clamp(1.2rem, 2.2vw, 1.65rem)",
             letterSpacing: "-0.02em",
-            color: hover ? "var(--accent)" : "var(--ink)",
-            transition: "color .2s ease"
-          }}>{project.title}</TitleTag>
+            lineHeight: 1.08,
+            color: "var(--ink)"
+          }}>
+            {project.title}
+            {interactive &&
+            <span
+              aria-hidden="true"
+              className="project-card__arrow"
+              style={{
+                display: "inline-block",
+                marginLeft: "0.28em",
+                opacity: mediaHover ? 1 : 0,
+                transform: mediaHover ? "translateX(0)" : "translateX(-5px)",
+                transition: "opacity .28s ease, transform .28s ease"
+              }}>→</span>
+            }
+          </TitleTag>
           <div className="project-card__badges" style={{
             display: "flex",
             gap: "8px",
@@ -655,8 +673,13 @@ function ProjectCardLayout({ project, as = "h3", hover = false }) {
             {project.topic && <ProjectMetaBadge>{project.topic}</ProjectMetaBadge>}
           </div>
         </div>
-        <ProjectMedia project={project} />
-        {as !== "h1" && (project.blurb || project.tagline) &&
+        <ProjectMedia
+          project={project}
+          hovered={mediaHover}
+          interactive={interactive}
+          onHoverChange={setMediaHover}
+          onOpen={onOpen} />
+        {showBlurb && as !== "h1" && (project.blurb || project.tagline) &&
         <p className="project-card__blurb" style={{
           margin: "10px 0 0",
           fontSize: "clamp(0.92rem, 1.4vw, 1rem)",
@@ -669,8 +692,34 @@ function ProjectCardLayout({ project, as = "h3", hover = false }) {
 
 }
 
-function ProjectMedia({ project }) {
+function ProjectMedia({ project, hovered = false, interactive = false, onHoverChange, onOpen }) {
   const [failed, setFailed] = useState(false);
+
+  const wrapProps = interactive ? {
+    role: "button",
+    tabIndex: 0,
+    "aria-label": `Open ${project.title}`,
+    onClick: () => onOpen?.(),
+    onKeyDown: (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        onOpen?.();
+      }
+    },
+    onMouseEnter: () => onHoverChange?.(true),
+    onMouseLeave: () => onHoverChange?.(false),
+    style: { cursor: "pointer" }
+  } : {};
+
+  const mediaStyle = {
+    width: "100%",
+    height: "var(--project-media-h)",
+    display: "block",
+    borderRadius: "6px",
+    background: "oklch(0.93 var(--tone-c) var(--tone-h))",
+    transform: interactive && hovered ? "scale(1.06)" : "scale(1)",
+    transition: "transform .45s ease"
+  };
 
   if (project.hero && !failed) {
     const srcSet = project.hero2x ?
@@ -678,53 +727,60 @@ function ProjectMedia({ project }) {
     undefined;
 
     return (
-      <img
-        src={project.hero2x || project.hero}
-        srcSet={srcSet}
-        sizes="(max-width: 720px) 100vw, 560px"
-        alt=""
-        onError={() => setFailed(true)}
-        className="project-media"
+      <div
+        className="project-media-wrap"
+        {...wrapProps}
         style={{
-          width: "100%",
-          height: "var(--project-media-h)",
-          display: "block",
-          objectFit: "cover",
-          objectPosition: "center",
+          overflow: "hidden",
           borderRadius: "6px",
-          background: "oklch(0.93 var(--tone-c) var(--tone-h))"
-        }} />);
+          ...wrapProps.style
+        }}>
+        <img
+          src={project.hero2x || project.hero}
+          srcSet={srcSet}
+          sizes="(max-width: 720px) 100vw, 560px"
+          alt=""
+          onError={() => setFailed(true)}
+          className="project-media"
+          style={{
+            ...mediaStyle,
+            objectFit: "cover",
+            objectPosition: "center"
+          }} />
+      </div>);
 
   }
 
   return (
     <div
-      className="project-placeholder"
-      aria-hidden="true"
+      className="project-media-wrap"
+      {...wrapProps}
       style={{
-        width: "100%",
-        height: "var(--project-media-h)",
-        background: "oklch(0.93 var(--tone-c) var(--tone-h))",
-        border: "1px solid var(--line)",
-        borderRadius: "6px"
-      }} />);
+        overflow: "hidden",
+        borderRadius: "6px",
+        ...wrapProps.style
+      }}>
+      <div
+        className="project-placeholder"
+        aria-hidden="true"
+        style={{
+          ...mediaStyle,
+          border: "1px solid var(--line)"
+        }} />
+    </div>);
 
 }
 
-function ProjectCard({ p, indexed, onOpen }) {
-  const [hover, setHover] = useState(false);
+function ProjectCard({ p, indexed, onOpen, cardRef, showBlurb = true }) {
   return (
     <article
-      onClick={() => onOpen(p.slug)}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
+      ref={cardRef}
       style={{
-        cursor: "pointer",
         display: "grid",
         gap: "clamp(12px, 2vw, 16px)"
       }}>
       {indexed && <Mono style={{ display: "block" }}>{p.n}</Mono>}
-      <ProjectCardLayout project={p} hover={hover} />
+      <ProjectCardLayout project={p} showBlurb={showBlurb} onOpen={() => onOpen(p.slug)} />
     </article>);
 
 }
@@ -797,13 +853,41 @@ function ProjectDetailView({ project, onBack }) {
 
 function ProjectsView({ layout, onOpenProject }) {
   const indexed = layout === "editorial";
+  const [activeIndex, setActiveIndex] = useState(0);
+  const cardRefs = useRef([]);
+
+  useEffect(() => {
+    const elements = cardRefs.current.filter(Boolean);
+    if (!elements.length) return;
+
+    const updateActive = () => {
+      const trigger = window.innerHeight * 0.32;
+      let next = 0;
+      elements.forEach((el, i) => {
+        if (el.getBoundingClientRect().top <= trigger) next = i;
+      });
+      setActiveIndex(next);
+    };
+
+    updateActive();
+    window.addEventListener("scroll", updateActive, { passive: true });
+    window.addEventListener("resize", updateActive);
+    return () => {
+      window.removeEventListener("scroll", updateActive);
+      window.removeEventListener("resize", updateActive);
+    };
+  }, []);
+
+  const activeProject = PROJECTS[activeIndex];
+  const activeBlurb = activeProject?.blurb || activeProject?.tagline || "";
+
   return (
     <main id="work" style={{
       padding: "clamp(48px, 8vh, 88px) var(--pad-x) var(--section-y)"
     }}>
       <div className="projects-featured" style={{
         display: "grid",
-        gridTemplateColumns: "minmax(120px, 0.75fr) minmax(0, 2.25fr)",
+        gridTemplateColumns: "minmax(220px, 1.15fr) minmax(0, 1.85fr)",
         columnGap: "var(--landing-menu-text-gap)",
         alignItems: "start",
         width: "100%",
@@ -829,6 +913,20 @@ function ProjectsView({ layout, onOpenProject }) {
             textTransform: "none",
             letterSpacing: "0.02em"
           }}>2024 – 2026</Mono>
+          {activeBlurb &&
+          <p
+            key={activeProject?.slug}
+            className="projects-featured__blurb"
+            style={{
+              margin: "clamp(24px, 4vw, 36px) 0 0",
+              fontSize: "clamp(1.2rem, 2.4vw, 1.75rem)",
+              lineHeight: 1.45,
+              letterSpacing: "-0.015em",
+              color: "var(--ink-2)",
+              maxWidth: "100%",
+              width: "100%"
+            }}>{activeBlurb}</p>
+          }
         </aside>
 
         <div className="projects-featured__list" style={{
@@ -836,8 +934,17 @@ function ProjectsView({ layout, onOpenProject }) {
           gap: "clamp(48px, 8vw, 80px)",
           minWidth: 0
         }}>
-          {PROJECTS.map((p) =>
-          <ProjectCard key={p.n} p={p} indexed={indexed} onOpen={onOpenProject} />
+          {PROJECTS.map((p, i) =>
+          <ProjectCard
+            key={p.n}
+            p={p}
+            indexed={indexed}
+            onOpen={onOpenProject}
+            showBlurb={false}
+            cardRef={(el) => {
+              cardRefs.current[i] = el;
+              if (el) el.dataset.projectIndex = String(i);
+            }} />
           )}
         </div>
       </div>
@@ -1162,6 +1269,14 @@ styleEl.textContent = `
       row-gap: clamp(28px, 5vw, 40px) !important;
     }
     .projects-featured__aside { position: static !important; }
+    .projects-featured__blurb { max-width: none !important; }
+  }
+  .projects-featured__blurb {
+    animation: featured-blurb-in .35s ease;
+  }
+  @keyframes featured-blurb-in {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
   }
 `;
 document.head.appendChild(styleEl);
