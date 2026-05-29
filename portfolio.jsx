@@ -268,6 +268,109 @@ function BigLink({ label, onClick }) {
 
 }
 
+/* ============================================================
+   MINI LINE GRAPH  — self-drawing chart line for the landing hero
+   Fills its container; path is generated from measured dimensions.
+   ============================================================ */
+function MiniLineGraph() {
+  const svgRef  = useRef(null);
+  const pathRef = useRef(null);
+
+  useEffect(() => {
+    const svg  = svgRef.current;
+    const path = pathRef.current;
+    if (!svg || !path) return;
+
+    let currentAnim = null;
+
+    const setup = () => {
+      const { width: W, height: H } = svg.getBoundingClientRect();
+      if (W < 10 || H < 10) return;
+
+      /* smooth spline — traced from reference chart (irregular peaks/valleys) */
+      const px = (x, y) => `${(x * W).toFixed(1)},${(y * H).toFixed(1)}`;
+      const pts = [
+        [0.00, 0.64],  /* start — mid height */
+        [0.11, 0.52],  /* small rounded hump */
+        [0.26, 0.94],  /* deep drop */
+        [0.33, 0.40],  /* sharp rise */
+        [0.41, 0.73],  /* shallow dip */
+        [0.56, 0.16],  /* tall broad peak */
+        [0.63, 0.87],  /* sharp deep drop */
+        [0.70, 0.28],  /* medium-high peak */
+        [0.78, 0.56],  /* mid dip */
+        [0.85, 0.07],  /* highest sharp peak */
+        [0.93, 0.70],  /* descent */
+        [1.00, 0.89]   /* end — low */
+      ];
+      let d = `M ${px(pts[0][0], pts[0][1])}`;
+      for (let i = 0; i < pts.length - 1; i++) {
+        const p0 = pts[Math.max(i - 1, 0)];
+        const p1 = pts[i];
+        const p2 = pts[i + 1];
+        const p3 = pts[Math.min(i + 2, pts.length - 1)];
+        const cp1x = p1[0] + (p2[0] - p0[0]) / 6;
+        const cp1y = p1[1] + (p2[1] - p0[1]) / 6;
+        const cp2x = p2[0] - (p3[0] - p1[0]) / 6;
+        const cp2y = p2[1] - (p3[1] - p1[1]) / 6;
+        d += ` C ${px(cp1x, cp1y)} ${px(cp2x, cp2y)} ${px(p2[0], p2[1])}`;
+      }
+
+      path.setAttribute("d", d);
+
+      const len = Math.ceil(path.getTotalLength());
+      /* fixed visible segment (~9% of path) — gap hides the rest so only one “worm” shows */
+      const seg = Math.max(6, Math.round(len * 0.095));
+      path.style.strokeDasharray = `${seg} ${len - seg}`;
+
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        path.style.strokeDashoffset = `${Math.round(len * 0.42)}`;
+        return;
+      }
+
+      path.style.strokeDashoffset = "0";
+
+      if (currentAnim) currentAnim.cancel();
+      currentAnim = path.animate(
+        [
+          { strokeDashoffset: 0 },
+          { strokeDashoffset: -len },
+        ],
+        { duration: 1600, easing: "linear", iterations: Infinity }
+      );
+    };
+
+    /* wait one rAF so the flex layout has settled before measuring */
+    const raf = requestAnimationFrame(setup);
+    const ro  = new ResizeObserver(setup);
+    ro.observe(svg);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      ro.disconnect();
+      if (currentAnim) currentAnim.cancel();
+    };
+  }, []);
+
+  return (
+    <svg
+      ref={svgRef}
+      width="100%" height="100%"
+      aria-hidden="true"
+      style={{ display: "block" }}
+    >
+      <path
+        ref={pathRef}
+        fill="none"
+        stroke="var(--accent)"
+        strokeWidth={3.5}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 function LandingHero({ setView }) {
   const scrollToWork = () => {
     const el = document.getElementById("work");
@@ -294,26 +397,49 @@ function LandingHero({ setView }) {
         padding: "var(--header-body-gap) var(--pad-x) 0"
       }}>
         <div className="landing-top" style={{
-          display: "grid", gridTemplateColumns: "1.5fr 1fr",
-          gap: "var(--landing-menu-text-gap)", alignItems: "flex-start",
+          display: "grid",
+          gridTemplateColumns: "1.5fr 1fr",
+          columnGap: "var(--landing-menu-text-gap)",
+          rowGap: "clamp(2px, 0.4vw, 8px)",
+          alignItems: "start",
           width: "100%"
         }}>
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: "clamp(2px, 0.4vw, 8px)" }}>
+          <div className="landing-top__projects" style={{ gridColumn: 1, gridRow: 1 }}>
             <BigLink label="Projects" onClick={scrollToWork} />
+          </div>
+
+          <div className="landing-top__photos" style={{ gridColumn: 1, gridRow: 2 }}>
             <BigLink label="Photos" onClick={() => setView("Photography")} />
+          </div>
+
+          <div className="landing-top__about" style={{ gridColumn: 1, gridRow: 3 }}>
             <BigLink label="About" onClick={() => setView("About")} />
           </div>
 
-          <div style={{ paddingTop: "clamp(6px, 1.2vw, 14px)" }}>
-            <p style={{
-              margin: 0, fontFamily: '"Inter Tight", system-ui, sans-serif', fontWeight: 700,
+          <div className="landing-top__side" style={{
+            gridColumn: 2,
+            gridRow: "1 / 4",
+            display: "flex",
+            flexDirection: "column",
+            gap: "var(--landing-graph-text-gap)",
+            alignSelf: "start",
+            minWidth: 0
+          }}>
+            <div className="landing-top__graph" style={{ minHeight: 0 }}>
+              <MiniLineGraph />
+            </div>
+
+            <p className="landing-top__tagline-headline" style={{
+              margin: 0,
+              fontFamily: '"Inter Tight", system-ui, sans-serif', fontWeight: 700,
               fontSize: "clamp(1.4rem, 2.4vw, 1.9rem)", lineHeight: 1.3, letterSpacing: "-0.01em",
               whiteSpace: "nowrap"
             }}>
               Data Analytics &amp; <span style={{ color: "var(--accent)" }}>AI enthusiast.</span>
             </p>
-            <p style={{
-              margin: "clamp(22px, 3vw, 36px) 0 0", maxWidth: "34ch",
+
+            <p className="landing-top__tagline-body" style={{
+              margin: 0, maxWidth: "34ch",
               fontFamily: '"Inter Tight", system-ui, sans-serif', fontWeight: 700,
               fontSize: "clamp(1.25rem, 2vw, 1.65rem)", lineHeight: 1.5, letterSpacing: "-0.005em"
             }}>
@@ -676,9 +802,26 @@ styleEl.textContent = `
     .big-link { transition-duration: 0.15s; }
     .name-display__char { transition-duration: 0.12s; }
   }
+  .landing-top__graph {
+    height: clamp(2.4rem, 6.2vw, 6rem);
+  }
+  .landing-top__side {
+    grid-column: 2;
+    grid-row: 1 / 4;
+  }
   @media (max-width: 720px) {
     .hero-editorial { grid-template-columns: 1fr !important; }
-    .landing-top { grid-template-columns: 1fr !important; gap: 28px !important; }
+    .landing-top {
+      grid-template-columns: 1fr !important;
+      row-gap: 20px !important;
+    }
+    .landing-top__side { display: contents; }
+    .landing-top__projects { grid-row: 1 !important; }
+    .landing-top__graph { grid-column: 1 !important; grid-row: 2 !important; }
+    .landing-top__photos { grid-row: 3 !important; }
+    .landing-top__tagline-headline { grid-column: 1 !important; grid-row: 4 !important; white-space: normal !important; }
+    .landing-top__about { grid-row: 5 !important; }
+    .landing-top__tagline-body { grid-column: 1 !important; grid-row: 6 !important; }
   }
 `;
 document.head.appendChild(styleEl);
