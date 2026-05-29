@@ -63,11 +63,14 @@ const PROJECTS = [
   n: "01",
   slug: "fovere",
   title: "Fovere",
-  meta: "Habit tracker · iOS · 2025",
-  blurb: "Fovere is my solo-built iOS habit tracker. Free, no ads, no login. Just a tool I created because I wanted something honest that actually helped me see my habits clearly with analytics.",
+  year: "2026",
+  topic: "Mobile App",
+  meta: "Habit tracker · iOS · 2026",
+  blurb: "I solo-built Fovere, the first completely free iOS habit tracker featuring full analytics with no ads or paywalls.",
   label: "mobile app",
   icon: "assets/fovere-icon.png",
-  hero: "assets/fovere-hero.png",
+  hero: "assets/fovere-card.png",
+  hero2x: "assets/fovere-card@2x.png",
   tagline: "Build & Break Habits",
   intro: "Fovere is the habit tracker for building routines you can sustain\u2014and for breaking ones you want to quit or limit. Log in seconds with swipe gestures, see your week and year in Calendar, and go deep in Analytics with trends, heatmaps, and insights. Free, with no ads, and your data stays on your device.",
   buildNote: "I made this app entirely on Cursor with Claude and Figma Make AI.",
@@ -102,6 +105,30 @@ const PROJECTS = [
     }
   ],
   closing: "Download Fovere and start with one habit so easy you cannot say no."
+},
+{
+  n: "02",
+  slug: "sportaz",
+  title: "Sportaz",
+  year: "2024",
+  topic: "E-commerce",
+  meta: "Sports retail · e-commerce · 2024",
+  blurb: "An online sports goods brand I built and ran\u2014400+ sales across equipment and apparel, from sourcing to fulfillment.",
+  label: "e-commerce",
+  icon: "assets/sportaz-icon.png",
+  hero: "assets/sportaz-hero.png",
+  tagline: "Sports goods, sold online",
+  intro: "Sportaz was my sports retail venture: curated gear and apparel sold direct to customers online. I handled branding, product selection, storefront, and orders end to end\u2014and crossed 400+ sales.",
+  sections: [
+    {
+      title: "Brand & storefront",
+      body: "Built the Sportaz identity and shopfront around a fast, athletic look\u2014lime green and bold type\u2014so the store felt energetic and trustworthy at first glance."
+    },
+    {
+      title: "Sales & operations",
+      body: "Sourced sports goods, listed them online, and fulfilled 400+ orders\u2014managing inventory, customer communication, and shipping."
+    }
+  ]
 }];
 
 
@@ -569,63 +596,118 @@ function SectionHead({ kicker, title }) {
 
 }
 
-function ProjectBrand({ project, size = "card", hover = false }) {
-  const isCard = size === "card";
-  const iconSize = isCard ?
-  "clamp(100px, 18vw, 140px)" :
-  "clamp(112px, 22vw, 168px)";
-
+function ProjectMetaBadge({ children }) {
   return (
-    <div style={{
+    <span style={{
+      display: "inline-block",
+      padding: "7px 11px",
+      background: "#000",
+      color: "#fff",
+      fontFamily: "var(--font-meta)",
+      fontSize: "0.68rem",
+      fontWeight: 500,
+      letterSpacing: "0.05em",
+      textTransform: "uppercase",
+      lineHeight: 1,
+      whiteSpace: "nowrap"
+    }}>{children}</span>);
+
+}
+
+function ProjectCardLayout({ project, as = "h3", hover = false }) {
+  const TitleTag = as;
+  return (
+    <div className="project-card-layout" style={{
       display: "flex",
-      flexDirection: isCard ? "row" : "column",
-      alignItems: isCard ? "flex-start" : "center",
-      textAlign: isCard ? "left" : "center",
-      gap: isCard ? "clamp(20px, 3vw, 28px)" : "18px",
-      width: isCard ? "100%" : undefined,
-      maxWidth: isCard ? "100%" : undefined
+      justifyContent: "flex-end"
     }}>
-      {project.icon &&
-      <img
-        src={project.icon}
-        alt=""
-        aria-hidden="true"
-        style={{
-          width: iconSize, height: iconSize,
-          borderRadius: "22%",
-          flexShrink: 0,
-          boxShadow: "0 12px 40px oklch(0.2 var(--tone-c) var(--tone-h) / 0.12)"
-        }} />
-      }
-      <div style={{ minWidth: 0, flex: isCard ? 1 : undefined, maxWidth: isCard ? "50%" : undefined }}>
-        {size === "detail" ?
-        <h1 style={{
-          margin: 0,
-          ...LANDING_TAGLINE,
-          fontSize: "clamp(1.4rem, 2.4vw, 1.9rem)", lineHeight: 1.3, letterSpacing: "-0.01em",
-          color: "var(--ink)"
-        }}>{project.title}</h1> :
-        <h3 style={{
-          margin: 0,
-          ...LANDING_TAGLINE,
-          fontSize: "clamp(1.25rem, 2vw, 1.65rem)",
-          color: hover ? "var(--accent)" : "var(--ink)",
-          transition: "color .2s ease"
-        }}>{project.title}</h3>
-        }
-        {(project.tagline || project.blurb) &&
-        <p style={{
-          margin: size === "detail" ? "10px auto 0" : "6px 0 0",
-          maxWidth: size === "detail" ? "36ch" : undefined,
-          ...LANDING_TAGLINE,
-          fontSize: size === "detail" ?
-          "clamp(1.25rem, 2vw, 1.65rem)" :
-          "clamp(1.05rem, 1.6vw, 1.25rem)",
+      <div className="project-card__block" style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: "4px",
+        width: "min(100%, var(--project-block-w))",
+        maxWidth: "var(--project-block-w)",
+        alignSelf: "flex-end"
+      }}>
+        <div className="project-card__head" style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: "12px"
+        }}>
+          <TitleTag style={{
+            margin: 0,
+            fontFamily: "var(--font-display)",
+            fontWeight: 600,
+            fontSize: as === "h1" ?
+            "clamp(1.5rem, 2.8vw, 2.1rem)" :
+            "clamp(1.2rem, 2.2vw, 1.65rem)",
+            letterSpacing: "-0.02em",
+            color: hover ? "var(--accent)" : "var(--ink)",
+            transition: "color .2s ease"
+          }}>{project.title}</TitleTag>
+          <div className="project-card__badges" style={{
+            display: "flex",
+            gap: "8px",
+            flexShrink: 0
+          }}>
+            {project.year && <ProjectMetaBadge>{project.year}</ProjectMetaBadge>}
+            {project.topic && <ProjectMetaBadge>{project.topic}</ProjectMetaBadge>}
+          </div>
+        </div>
+        <ProjectMedia project={project} />
+        {as !== "h1" && (project.blurb || project.tagline) &&
+        <p className="project-card__blurb" style={{
+          margin: "10px 0 0",
+          fontSize: "clamp(0.92rem, 1.4vw, 1rem)",
+          lineHeight: 1.55,
           color: "var(--ink-2)"
-        }}>{isCard ? project.blurb || project.tagline : project.tagline || project.blurb}</p>
+        }}>{project.blurb || project.tagline}</p>
         }
       </div>
     </div>);
+
+}
+
+function ProjectMedia({ project }) {
+  const [failed, setFailed] = useState(false);
+
+  if (project.hero && !failed) {
+    const srcSet = project.hero2x ?
+    `${project.hero} 560w, ${project.hero2x} 1024w` :
+    undefined;
+
+    return (
+      <img
+        src={project.hero2x || project.hero}
+        srcSet={srcSet}
+        sizes="(max-width: 720px) 100vw, 560px"
+        alt=""
+        onError={() => setFailed(true)}
+        className="project-media"
+        style={{
+          width: "100%",
+          height: "var(--project-media-h)",
+          display: "block",
+          objectFit: "cover",
+          objectPosition: "center",
+          borderRadius: "6px",
+          background: "oklch(0.93 var(--tone-c) var(--tone-h))"
+        }} />);
+
+  }
+
+  return (
+    <div
+      className="project-placeholder"
+      aria-hidden="true"
+      style={{
+        width: "100%",
+        height: "var(--project-media-h)",
+        background: "oklch(0.93 var(--tone-c) var(--tone-h))",
+        border: "1px solid var(--line)",
+        borderRadius: "6px"
+      }} />);
 
 }
 
@@ -636,9 +718,13 @@ function ProjectCard({ p, indexed, onOpen }) {
       onClick={() => onOpen(p.slug)}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
-      style={{ cursor: "pointer" }}>
-      {indexed && <Mono style={{ display: "block", marginBottom: "12px" }}>{p.n}</Mono>}
-      <ProjectBrand project={p} size="card" hover={hover} />
+      style={{
+        cursor: "pointer",
+        display: "grid",
+        gap: "clamp(12px, 2vw, 16px)"
+      }}>
+      {indexed && <Mono style={{ display: "block" }}>{p.n}</Mono>}
+      <ProjectCardLayout project={p} hover={hover} />
     </article>);
 
 }
@@ -660,6 +746,10 @@ function ProjectDetailView({ project, onBack }) {
           }}>
           <Mono style={{ color: "var(--ink-2)" }}>&larr; Back to projects</Mono>
         </button>
+
+        <div style={{ marginBottom: "clamp(32px, 4vw, 48px)" }}>
+          <ProjectCardLayout project={project} as="h1" />
+        </div>
       </div>
 
       <div style={{
@@ -667,15 +757,6 @@ function ProjectDetailView({ project, onBack }) {
         maxWidth: "760px",
         margin: "0 auto"
       }}>
-        <div style={{ marginBottom: "clamp(32px, 4vw, 48px)" }}>
-          <ProjectBrand project={project} size="detail" />
-        </div>
-
-        <Mono style={{
-          display: "block", textAlign: "center",
-          marginBottom: "clamp(24px, 3vw, 36px)"
-        }}>{project.meta}</Mono>
-
         {project.intro &&
         <p style={{
           margin: "0 0 clamp(20px, 3vw, 28px)",
@@ -720,17 +801,41 @@ function ProjectsView({ layout, onOpenProject }) {
     <main id="work" style={{
       padding: "clamp(48px, 8vh, 88px) var(--pad-x) var(--section-y)"
     }}>
-      <LandingSectionHead
-        title="Projects"
-        kicker={`${PROJECTS.length} project${PROJECTS.length === 1 ? "" : "s"}`}
-      />
-      <div className="landing-top" style={{
+      <div className="projects-featured" style={{
         display: "grid",
-        gridTemplateColumns: "1.5fr 1fr",
+        gridTemplateColumns: "minmax(120px, 0.75fr) minmax(0, 2.25fr)",
         columnGap: "var(--landing-menu-text-gap)",
-        width: "100%"
+        alignItems: "start",
+        width: "100%",
+        maxWidth: "var(--maxw)",
+        margin: "0 auto"
       }}>
-        <div style={{ gridColumn: "1 / -1", display: "grid", gap: "var(--gap)" }}>
+        <aside className="projects-featured__aside" style={{
+          position: "sticky",
+          top: "clamp(20px, 4vh, 40px)"
+        }}>
+          <h2 style={{
+            margin: 0,
+            fontFamily: "var(--font-display)",
+            fontWeight: 600,
+            fontSize: "clamp(1.35rem, 2.5vw, 2rem)",
+            letterSpacing: "-0.02em",
+            lineHeight: 1.12
+          }}>Featured Projects</h2>
+          <Mono style={{
+            display: "block",
+            marginTop: "14px",
+            color: "var(--ink-3)",
+            textTransform: "none",
+            letterSpacing: "0.02em"
+          }}>2024 – 2026</Mono>
+        </aside>
+
+        <div className="projects-featured__list" style={{
+          display: "grid",
+          gap: "clamp(48px, 8vw, 80px)",
+          minWidth: 0
+        }}>
           {PROJECTS.map((p) =>
           <ProjectCard key={p.n} p={p} indexed={indexed} onOpen={onOpenProject} />
           )}
@@ -993,6 +1098,10 @@ function App() {
 /* view fade-in */
 const styleEl = document.createElement("style");
 styleEl.textContent = `
+  :root {
+    --project-block-w: 560px;
+    --project-media-h: clamp(220px, 28vw, 390px);
+  }
   .view-fade { animation: viewFade .42s cubic-bezier(.2,.7,.2,1); }
   @keyframes viewFade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
   .big-link {
@@ -1046,6 +1155,13 @@ styleEl.textContent = `
     .landing-top__tagline-headline { grid-column: 1 !important; grid-row: 4 !important; white-space: normal !important; }
     .landing-top__about { grid-row: 5 !important; }
     .landing-top__tagline-body { grid-column: 1 !important; grid-row: 6 !important; }
+    .project-card-layout { justify-content: flex-start !important; }
+    .project-card__block { width: 100% !important; max-width: 100% !important; }
+    .projects-featured {
+      grid-template-columns: 1fr !important;
+      row-gap: clamp(28px, 5vw, 40px) !important;
+    }
+    .projects-featured__aside { position: static !important; }
   }
 `;
 document.head.appendChild(styleEl);
