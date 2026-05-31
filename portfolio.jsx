@@ -990,96 +990,251 @@ function ProjectsView({ layout, onOpenProject }) {
 }
 
 /* ============================================================
-   PHOTOGRAPHY  — hover scales a photo up to fill the screen
+   PHOTOGRAPHY  — horizontal collage, scroll-jacked
    ============================================================ */
-function Photo({ photo, focused, dimmed, onEnter, onLeave }) {
-  const ref = useRef(null);
-  const [tf, setTf] = useState("none");
-  const coarseRef = useRef(
-    typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches
-  );
+const PHOTO_GROUPS = [
+  {
+    mt: "10vh",
+    cols: [[
+      { seed: "porto-shells",  h: "clamp(155px, 22vh, 230px)", ar: "0.76", ws: 460, hs: 600 },
+      { seed: "porto-food",    h: "clamp(100px, 14vh, 148px)", ar: "1.38", ws: 600, hs: 435 },
+    ]],
+  },
+  {
+    mt: "2vh",
+    cols: [[
+      { seed: "beach-tall",    h: "clamp(265px, 39vh, 405px)", ar: "0.66", ws: 400, hs: 610 },
+    ]],
+  },
+  {
+    mt: "7vh",
+    cols: [[
+      { seed: "yellow-flower", h: "clamp(155px, 22vh, 230px)", ar: "0.76", ws: 460, hs: 600 },
+      { seed: "harbor-dusk",   h: "clamp(115px, 16vh, 170px)", ar: "1.4",  ws: 680, hs: 485 },
+    ]],
+  },
+  {
+    mt: "0",
+    cols: [[
+      { seed: "lisbon-street", h: "clamp(265px, 39vh, 405px)", ar: "0.74", ws: 450, hs: 610 },
+    ]],
+  },
+  {
+    mt: "5vh",
+    cols: [
+      [
+        { seed: "braids-back",  h: "clamp(130px, 19vh, 195px)", ar: "0.74", ws: 430, hs: 580 },
+        { seed: "wildflowers",  h: "clamp(105px, 15vh, 158px)", ar: "1.16", ws: 570, hs: 490 },
+      ],
+      [
+        { seed: "red-heels",    h: "clamp(130px, 19vh, 195px)", ar: "0.74", ws: 430, hs: 580 },
+        { seed: "orange-field", h: "clamp(105px, 15vh, 158px)", ar: "1.16", ws: 570, hs: 490 },
+      ],
+    ],
+  },
+  {
+    mt: "2vh",
+    cols: [[
+      { seed: "car-mirror",    h: "clamp(265px, 39vh, 405px)", ar: "0.66", ws: 400, hs: 610 },
+    ]],
+  },
+  {
+    mt: "8vh",
+    cols: [[
+      { seed: "rooftop-sun",   h: "clamp(155px, 22vh, 230px)", ar: "0.76", ws: 460, hs: 600 },
+      { seed: "tile-floor",    h: "clamp(100px, 14vh, 148px)", ar: "1.33", ws: 590, hs: 443 },
+    ]],
+  },
+  {
+    mt: "3vh",
+    cols: [[
+      { seed: "portrait-hat",  h: "clamp(265px, 39vh, 405px)", ar: "0.68", ws: 415, hs: 610 },
+    ]],
+  },
+  {
+    mt: "6vh",
+    cols: [
+      [
+        { seed: "market-stall", h: "clamp(130px, 19vh, 195px)", ar: "0.74", ws: 430, hs: 580 },
+        { seed: "cobblestones", h: "clamp(105px, 15vh, 158px)", ar: "1.16", ws: 570, hs: 490 },
+      ],
+      [
+        { seed: "window-light", h: "clamp(130px, 19vh, 195px)", ar: "0.74", ws: 430, hs: 580 },
+        { seed: "cafe-table",   h: "clamp(105px, 15vh, 158px)", ar: "1.16", ws: 570, hs: 490 },
+      ],
+    ],
+  },
+  {
+    mt: "1vh",
+    cols: [[
+      { seed: "film-grain",    h: "clamp(265px, 39vh, 405px)", ar: "0.74", ws: 450, hs: 610 },
+    ]],
+  },
+  {
+    mt: "9vh",
+    cols: [[
+      { seed: "seaside-wall",  h: "clamp(155px, 22vh, 230px)", ar: "0.76", ws: 460, hs: 600 },
+      { seed: "sunhat-beach",  h: "clamp(100px, 14vh, 148px)", ar: "1.38", ws: 600, hs: 435 },
+    ]],
+  },
+  {
+    mt: "4vh",
+    cols: [[
+      { seed: "tall-alley",    h: "clamp(265px, 39vh, 405px)", ar: "0.66", ws: 400, hs: 610 },
+    ]],
+  },
+  {
+    mt: "7vh",
+    cols: [
+      [
+        { seed: "ferry-deck",   h: "clamp(130px, 19vh, 195px)", ar: "0.74", ws: 430, hs: 580 },
+        { seed: "rope-knot",    h: "clamp(105px, 15vh, 158px)", ar: "1.16", ws: 570, hs: 490 },
+      ],
+      [
+        { seed: "tram-rails",   h: "clamp(130px, 19vh, 195px)", ar: "0.74", ws: 430, hs: 580 },
+        { seed: "evening-sky",  h: "clamp(105px, 15vh, 158px)", ar: "1.16", ws: 570, hs: 490 },
+      ],
+    ],
+  },
+  {
+    mt: "2vh",
+    cols: [[
+      { seed: "expired-35mm",  h: "clamp(265px, 39vh, 405px)", ar: "0.68", ws: 415, hs: 610 },
+    ]],
+  },
+];
 
-  const enter = useCallback(() => {
-    const el = ref.current;
+const PHOTO_NAV = ["Film", "35mm", "Lisbon", "Travel", "Still Life", "Contact"];
+
+function PhotographyView() {
+  const scrollRef = useRef(null);
+  const dragRef   = useRef({ active: false, startX: 0, scrollLeft: 0 });
+
+  /* lock body scroll while this view is mounted */
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prev; };
+  }, []);
+
+  /* vertical wheel → horizontal scroll */
+  useEffect(() => {
+    const el = scrollRef.current;
     if (!el) return;
-    const r = el.getBoundingClientRect();
-    const vw = window.innerWidth,vh = window.innerHeight;
-    const targetW = vw * 0.66,targetH = vh * 0.82;
-    const scale = Math.min(targetW / r.width, targetH / r.height);
-    const dx = vw / 2 - (r.left + r.width / 2);
-    const dy = vh / 2 - (r.top + r.height / 2);
-    setTf(`translate(${dx}px, ${dy}px) scale(${Math.max(scale, 1)})`);
-    onEnter();
-  }, [onEnter]);
+    const onWheel = (e) => {
+      if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+        e.preventDefault();
+        el.scrollLeft += e.deltaY * 1.15;
+      }
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, []);
 
-  const leave = useCallback(() => {
-    setTf("none");
-    onLeave();
-  }, [onLeave]);
+  /* click-drag to scroll */
+  const onMouseDown = useCallback((e) => {
+    const el = scrollRef.current;
+    if (!el) return;
+    dragRef.current = { active: true, startX: e.pageX, scrollLeft: el.scrollLeft };
+    el.style.cursor = "grabbing";
+  }, []);
 
-  const tap = useCallback(() => {
-    if (!coarseRef.current) return;
-    if (focused) leave();
-    else enter();
-  }, [focused, enter, leave]);
+  const onMouseUp = useCallback(() => {
+    dragRef.current.active = false;
+    if (scrollRef.current) scrollRef.current.style.cursor = "grab";
+  }, []);
 
-  return (
-    <div
-      ref={ref}
-      onMouseEnter={coarseRef.current ? undefined : enter}
-      onMouseLeave={coarseRef.current ? undefined : leave}
-      onClick={tap}
-      style={{
-        position: "relative", cursor: "zoom-in",
-        zIndex: focused ? 40 : 1,
-        opacity: dimmed ? 0.1 : 1,
-        transform: tf,
-        transformOrigin: "center",
-        transition: "transform .62s cubic-bezier(.19,1,.22,1), opacity .45s ease",
-        willChange: "transform",
-        boxShadow: focused ? "0 30px 80px -30px rgba(0,0,0,.28)" : "none"
-      }}>
-      
-      <Placeholder shade={photo.shade} label={photo.cap} ratio={photo.ratio} />
-    </div>);
-
-}
-
-function PhotographyView({ gallery }) {
-  const [hovered, setHovered] = useState(null);
-
-  const gridStyle =
-  gallery === "single" ?
-  { display: "grid", gridTemplateColumns: "minmax(0, 760px)", justifyContent: "center", gap: "calc(var(--gap) + 20px)" } :
-  gallery === "masonry" ?
-  { columns: "3 240px", columnGap: "var(--gap)" } :
-  { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(210px, 1fr))", gap: "var(--gap)" };
+  const onMouseMove = useCallback((e) => {
+    if (!dragRef.current.active) return;
+    e.preventDefault();
+    const walk = (e.pageX - dragRef.current.startX) * 1.4;
+    scrollRef.current.scrollLeft = dragRef.current.scrollLeft - walk;
+  }, []);
 
   return (
-    <main style={{ padding: "var(--header-body-gap) var(--pad-x) var(--section-y)" }}>
-      <div style={{ maxWidth: "var(--maxw)", margin: "0 auto" }}>
-        <SectionHead title="Photography" kicker="hover or tap to look closer" />
-        <div style={gridStyle}>
-          {PHOTOS.map((photo, i) => {
-            const wrap = gallery === "masonry" ?
-            { breakInside: "avoid", marginBottom: "var(--gap)" } :
-            {};
-            return (
-              <div key={i} style={wrap}>
-                <Photo
-                  photo={photo}
-                  focused={hovered === i}
-                  dimmed={hovered !== null && hovered !== i}
-                  onEnter={() => setHovered(i)}
-                  onLeave={() => setHovered((h) => h === i ? null : h)} />
-                
-              </div>);
+    <div style={{ height: "calc(100vh - 60px)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
 
-          })}
-        </div>
+      {/* ── horizontal photo strip ── */}
+      <div
+        ref={scrollRef}
+        className="photo-hscroll"
+        onMouseDown={onMouseDown}
+        onMouseUp={onMouseUp}
+        onMouseLeave={onMouseUp}
+        onMouseMove={onMouseMove}
+        style={{
+          flex: 1,
+          overflowX: "auto",
+          overflowY: "hidden",
+          display: "flex",
+          alignItems: "flex-start",
+          gap: "clamp(20px, 3vw, 44px)",
+          padding: "clamp(28px, 4vh, 52px) clamp(32px, 7vw, 100px) 20px",
+          scrollbarWidth: "none",
+          msOverflowStyle: "none",
+          cursor: "grab",
+          userSelect: "none",
+        }}
+      >
+        {PHOTO_GROUPS.map((group, gi) => (
+          <div
+            key={gi}
+            style={{
+              display: "flex",
+              gap: "clamp(10px, 1.4vw, 18px)",
+              marginTop: group.mt,
+              flexShrink: 0,
+              alignItems: "flex-start",
+            }}
+          >
+            {group.cols.map((col, ci) => (
+              <div key={ci} style={{ display: "flex", flexDirection: "column", gap: "clamp(10px, 1.4vw, 18px)" }}>
+                {col.map((photo, pi) => (
+                  <img
+                    key={pi}
+                    src={`https://picsum.photos/seed/${photo.seed}/${photo.ws}/${photo.hs}`}
+                    alt=""
+                    loading="lazy"
+                    draggable="false"
+                    style={{
+                      height: photo.h,
+                      aspectRatio: photo.ar,
+                      objectFit: "cover",
+                      display: "block",
+                      flexShrink: 0,
+                    }}
+                  />
+                ))}
+              </div>
+            ))}
+          </div>
+        ))}
       </div>
-    </main>);
 
+      {/* ── bottom nav ── */}
+      <nav style={{
+        padding: "16px clamp(32px, 7vw, 100px)",
+        display: "flex",
+        gap: "clamp(18px, 3vw, 40px)",
+        justifyContent: "center",
+        flexWrap: "wrap",
+        borderTop: "1px solid var(--line)",
+        flexShrink: 0,
+      }}>
+        {PHOTO_NAV.map((item) => (
+          <span key={item} className="photo-nav-item" style={{
+            fontFamily: "var(--font-meta)",
+            fontSize: "0.62rem",
+            letterSpacing: "var(--meta-tracking)",
+            textTransform: "var(--meta-transform)",
+            color: "var(--ink-3)",
+            cursor: "pointer",
+          }}>{item}</span>
+        ))}
+      </nav>
+
+    </div>
+  );
 }
 
 /* ============================================================
@@ -1190,11 +1345,11 @@ function App() {
             <ProjectsView layout={t.layout} onOpenProject={openProject} />
           </React.Fragment>
         }
-        {view === "Photography" && <PhotographyView gallery={t.gallery} />}
+        {view === "Photography" && <PhotographyView />}
         {view === "About" && <AboutView />}
       </div>
 
-      <Footer />
+      {view !== "Photography" && <Footer />}
 
       <TweaksPanel>
         <TweakSection label="Type" />
@@ -1315,6 +1470,9 @@ styleEl.textContent = `
     from { opacity: 0; transform: translateY(6px); }
     to { opacity: 1; transform: translateY(0); }
   }
+  .photo-hscroll::-webkit-scrollbar { display: none; }
+  .photo-nav-item { transition: color .2s ease; }
+  .photo-nav-item:hover { color: var(--ink) !important; }
 `;
 document.head.appendChild(styleEl);
 
