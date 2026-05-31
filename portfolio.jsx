@@ -471,16 +471,6 @@ function LandingHero({ setView }) {
       display: "flex", flexDirection: "column",
       overflow: "hidden"
     }}>
-      {/* HOME top-left */}
-      <div style={{ padding: "clamp(14px, 2vh, 22px) var(--pad-x) 0", fontFamily: "\"Times New Roman\"" }}>
-        <button onClick={scrollToWork} style={{
-          all: "unset", cursor: "pointer",
-          fontSize: "0.72rem",
-          letterSpacing: "0.1em", textTransform: "uppercase",
-          color: "var(--ink)", fontFamily: "\"Schibsted Grotesk\"", fontWeight: "600"
-        }}>Home</button>
-      </div>
-
       <div style={{
         display: "flex", alignItems: "flex-start",
         padding: "var(--header-body-gap) var(--pad-x) 0"
@@ -992,117 +982,185 @@ function ProjectsView({ layout, onOpenProject }) {
 /* ============================================================
    PHOTOGRAPHY  — horizontal collage, scroll-jacked
    ============================================================ */
-const PHOTO_GROUPS = [
+const CAMARITA_IMAGES = [
+  "Images_camarita/DSC02823.JPG",
+  "Images_camarita/DSC02832.JPG",
+  "Images_camarita/DSC02840.JPG",
+  "Images_camarita/DSC03359.JPG",
+  "Images_camarita/DSC03398.JPG",
+  "Images_camarita/DSC03443.JPG",
+  "Images_camarita/DSC03447.JPG",
+  "Images_camarita/DSC03536.JPG",
+  "Images_camarita/DSC03547.JPG",
+  "Images_camarita/DSC03550.JPG",
+  "Images_camarita/DSC03571.JPG",
+  "Images_camarita/DSC03600.JPG",
+  "Images_camarita/DSC03614.JPG",
+  "Images_camarita/DSC03631.JPG",
+  "Images_camarita/DSC03643.JPG",
+  "Images_camarita/DSC03652.JPG",
+  "Images_camarita/DSC03657.JPG",
+  "Images_camarita/DSC03658.JPG",
+  "Images_camarita/DSC03660.JPG",
+  "Images_camarita/DSC03663.JPG",
+  "Images_camarita/DSC03664.JPG",
+  "Images_camarita/DSC03730.JPG",
+  "Images_camarita/DSC03731.JPG",
+  "Images_camarita/DSC03738.JPG",
+  "Images_camarita/DSC03762.JPG",
+  "Images_camarita/DSC03769.JPG",
+  "Images_camarita/DSC03772.JPG",
+  "Images_camarita/DSC03773.JPG",
+  "Images_camarita/DSC03850.JPG",
+  "Images_camarita/DSC03883.JPG",
+  "Images_camarita/DSC03909.JPG",
+];
+
+const PHOTO_LAYOUT_GROUPS = [
   {
-    mt: "10vh",
+    mt: "1vh",
     cols: [[
-      { seed: "porto-shells",  h: "clamp(155px, 22vh, 230px)", ar: "0.76", ws: 460, hs: 600 },
-      { seed: "porto-food",    h: "clamp(100px, 14vh, 148px)", ar: "1.38", ws: 600, hs: 435 },
+      { h: "clamp(310px, 44vh, 460px)", ar: "0.76" },
+      { h: "clamp(200px, 28vh, 300px)", ar: "1.38" },
     ]],
   },
   {
-    mt: "2vh",
+    mt: "0.5vh",
     cols: [[
-      { seed: "beach-tall",    h: "clamp(265px, 39vh, 405px)", ar: "0.66", ws: 400, hs: 610 },
+      { h: "clamp(520px, 70vh, 820px)", ar: "0.66" },
     ]],
   },
   {
-    mt: "7vh",
+    mt: "0.5vh",
     cols: [[
-      { seed: "yellow-flower", h: "clamp(155px, 22vh, 230px)", ar: "0.76", ws: 460, hs: 600 },
-      { seed: "harbor-dusk",   h: "clamp(115px, 16vh, 170px)", ar: "1.4",  ws: 680, hs: 485 },
+      { h: "clamp(310px, 44vh, 460px)", ar: "0.76" },
+      { h: "clamp(225px, 31vh, 340px)", ar: "1.4" },
     ]],
   },
   {
     mt: "0",
     cols: [[
-      { seed: "lisbon-street", h: "clamp(265px, 39vh, 405px)", ar: "0.74", ws: 450, hs: 610 },
+      { h: "clamp(520px, 70vh, 820px)", ar: "0.74" },
     ]],
   },
   {
-    mt: "5vh",
+    mt: "1vh",
     cols: [
       [
-        { seed: "braids-back",  h: "clamp(130px, 19vh, 195px)", ar: "0.74", ws: 430, hs: 580 },
-        { seed: "wildflowers",  h: "clamp(105px, 15vh, 158px)", ar: "1.16", ws: 570, hs: 490 },
+        { h: "clamp(260px, 38vh, 395px)", ar: "0.74" },
+        { h: "clamp(210px, 30vh, 315px)", ar: "1.16" },
       ],
       [
-        { seed: "red-heels",    h: "clamp(130px, 19vh, 195px)", ar: "0.74", ws: 430, hs: 580 },
-        { seed: "orange-field", h: "clamp(105px, 15vh, 158px)", ar: "1.16", ws: 570, hs: 490 },
+        { h: "clamp(260px, 38vh, 395px)", ar: "0.74" },
+        { h: "clamp(210px, 30vh, 315px)", ar: "1.16" },
       ],
     ],
   },
   {
-    mt: "2vh",
+    mt: "0.5vh",
     cols: [[
-      { seed: "car-mirror",    h: "clamp(265px, 39vh, 405px)", ar: "0.66", ws: 400, hs: 610 },
+      { h: "clamp(520px, 70vh, 820px)", ar: "0.66" },
     ]],
   },
   {
-    mt: "8vh",
+    mt: "0.5vh",
     cols: [[
-      { seed: "rooftop-sun",   h: "clamp(155px, 22vh, 230px)", ar: "0.76", ws: 460, hs: 600 },
-      { seed: "tile-floor",    h: "clamp(100px, 14vh, 148px)", ar: "1.33", ws: 590, hs: 443 },
+      { h: "clamp(310px, 44vh, 460px)", ar: "0.76" },
+      { h: "clamp(200px, 28vh, 300px)", ar: "1.33" },
     ]],
   },
   {
-    mt: "3vh",
+    mt: "0.5vh",
     cols: [[
-      { seed: "portrait-hat",  h: "clamp(265px, 39vh, 405px)", ar: "0.68", ws: 415, hs: 610 },
+      { h: "clamp(520px, 70vh, 820px)", ar: "0.68" },
     ]],
   },
   {
-    mt: "6vh",
+    mt: "0.5vh",
     cols: [
       [
-        { seed: "market-stall", h: "clamp(130px, 19vh, 195px)", ar: "0.74", ws: 430, hs: 580 },
-        { seed: "cobblestones", h: "clamp(105px, 15vh, 158px)", ar: "1.16", ws: 570, hs: 490 },
+        { h: "clamp(260px, 38vh, 395px)", ar: "0.74" },
+        { h: "clamp(210px, 30vh, 315px)", ar: "1.16" },
       ],
       [
-        { seed: "window-light", h: "clamp(130px, 19vh, 195px)", ar: "0.74", ws: 430, hs: 580 },
-        { seed: "cafe-table",   h: "clamp(105px, 15vh, 158px)", ar: "1.16", ws: 570, hs: 490 },
+        { h: "clamp(260px, 38vh, 395px)", ar: "0.74" },
+        { h: "clamp(210px, 30vh, 315px)", ar: "1.16" },
       ],
     ],
   },
   {
     mt: "1vh",
     cols: [[
-      { seed: "film-grain",    h: "clamp(265px, 39vh, 405px)", ar: "0.74", ws: 450, hs: 610 },
-    ]],
-  },
-  {
-    mt: "9vh",
-    cols: [[
-      { seed: "seaside-wall",  h: "clamp(155px, 22vh, 230px)", ar: "0.76", ws: 460, hs: 600 },
-      { seed: "sunhat-beach",  h: "clamp(100px, 14vh, 148px)", ar: "1.38", ws: 600, hs: 435 },
+      { h: "clamp(520px, 70vh, 820px)", ar: "0.74" },
     ]],
   },
   {
     mt: "4vh",
     cols: [[
-      { seed: "tall-alley",    h: "clamp(265px, 39vh, 405px)", ar: "0.66", ws: 400, hs: 610 },
+      { h: "clamp(310px, 44vh, 460px)", ar: "0.76" },
+      { h: "clamp(200px, 28vh, 300px)", ar: "1.38" },
     ]],
   },
   {
-    mt: "7vh",
+    mt: "4vh",
+    cols: [[
+      { h: "clamp(520px, 70vh, 820px)", ar: "0.66" },
+    ]],
+  },
+  {
+    mt: "0.5vh",
     cols: [
       [
-        { seed: "ferry-deck",   h: "clamp(130px, 19vh, 195px)", ar: "0.74", ws: 430, hs: 580 },
-        { seed: "rope-knot",    h: "clamp(105px, 15vh, 158px)", ar: "1.16", ws: 570, hs: 490 },
+        { h: "clamp(260px, 38vh, 395px)", ar: "0.74" },
+        { h: "clamp(210px, 30vh, 315px)", ar: "1.16" },
       ],
       [
-        { seed: "tram-rails",   h: "clamp(130px, 19vh, 195px)", ar: "0.74", ws: 430, hs: 580 },
-        { seed: "evening-sky",  h: "clamp(105px, 15vh, 158px)", ar: "1.16", ws: 570, hs: 490 },
+        { h: "clamp(260px, 38vh, 395px)", ar: "0.74" },
+        { h: "clamp(210px, 30vh, 315px)", ar: "1.16" },
       ],
     ],
   },
   {
-    mt: "2vh",
+    mt: "0.5vh",
     cols: [[
-      { seed: "expired-35mm",  h: "clamp(265px, 39vh, 405px)", ar: "0.68", ws: 415, hs: 610 },
+      { h: "clamp(520px, 70vh, 820px)", ar: "0.68" },
+    ]],
+  },
+  {
+    mt: "1vh",
+    cols: [[
+      { h: "clamp(310px, 44vh, 460px)", ar: "0.76" },
+      { h: "clamp(200px, 28vh, 300px)", ar: "1.38" },
+    ]],
+  },
+  {
+    mt: "0.5vh",
+    cols: [[
+      { h: "clamp(520px, 70vh, 820px)", ar: "0.74" },
+    ]],
+  },
+  {
+    mt: "0.5vh",
+    cols: [[
+      { h: "clamp(520px, 70vh, 820px)", ar: "0.68" },
     ]],
   },
 ];
+
+function assignPhotoSources(groups, images) {
+  let i = 0;
+  return groups.map((group) => ({
+    ...group,
+    cols: group.cols.map((col) =>
+      col.map((photo) => ({
+        ...photo,
+        src: images[i++] ?? images[images.length - 1],
+      }))
+    ),
+  }));
+}
+
+const PHOTO_GROUPS = assignPhotoSources(PHOTO_LAYOUT_GROUPS, CAMARITA_IMAGES);
 
 const PHOTO_NAV = ["Film", "35mm", "Lisbon", "Travel", "Still Life", "Contact"];
 
@@ -1167,9 +1225,9 @@ function PhotographyView() {
           overflowX: "auto",
           overflowY: "hidden",
           display: "flex",
-          alignItems: "flex-start",
-          gap: "clamp(20px, 3vw, 44px)",
-          padding: "clamp(28px, 4vh, 52px) clamp(32px, 7vw, 100px) 20px",
+          alignItems: "center",
+          gap: "clamp(24px, 3.5vw, 52px)",
+          padding: "clamp(4px, 0.5vh, 10px) clamp(24px, 5vw, 80px) 4px",
           scrollbarWidth: "none",
           msOverflowStyle: "none",
           cursor: "grab",
@@ -1192,7 +1250,7 @@ function PhotographyView() {
                 {col.map((photo, pi) => (
                   <img
                     key={pi}
-                    src={`https://picsum.photos/seed/${photo.seed}/${photo.ws}/${photo.hs}`}
+                    src={photo.src}
                     alt=""
                     loading="lazy"
                     draggable="false"
@@ -1213,7 +1271,7 @@ function PhotographyView() {
 
       {/* ── bottom nav ── */}
       <nav style={{
-        padding: "16px clamp(32px, 7vw, 100px)",
+        padding: "10px clamp(24px, 5vw, 80px)",
         display: "flex",
         gap: "clamp(18px, 3vw, 40px)",
         justifyContent: "center",
