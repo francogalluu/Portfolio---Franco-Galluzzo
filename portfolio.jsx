@@ -1389,11 +1389,102 @@ function clampPhotoScroll(el, value) {
   return Math.max(0, Math.min(max, value));
 }
 
+function PhotoEyeCursor({ enabled, scrollRef, dragActiveRef, lightboxOpen }) {
+  const nodeRef = useRef(null);
+  const motionRef = useRef({
+    x: 0, y: 0, tx: 0, ty: 0, opacity: 0, targetOpacity: 0, raf: null, initialized: false
+  });
+  const reducedMotion = useRef(
+    typeof window !== "undefined" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  );
+
+  useEffect(() => {
+    const root = scrollRef.current;
+    if (!root || !enabled) return;
+
+    const onMove = (e) => {
+      if (dragActiveRef.current || lightboxOpen) return;
+      const m = motionRef.current;
+      m.tx = e.clientX;
+      m.ty = e.clientY;
+      m.targetOpacity = e.target.closest(".photo-frame") ? 1 : 0;
+      if (!m.initialized) {
+        m.x = m.tx;
+        m.y = m.ty;
+        m.initialized = true;
+      }
+    };
+
+    const onLeave = () => {
+      motionRef.current.targetOpacity = 0;
+    };
+
+    root.addEventListener("mousemove", onMove);
+    root.addEventListener("mouseleave", onLeave);
+    return () => {
+      root.removeEventListener("mousemove", onMove);
+      root.removeEventListener("mouseleave", onLeave);
+    };
+  }, [enabled, scrollRef, dragActiveRef, lightboxOpen]);
+
+  useEffect(() => {
+    if (!enabled) {
+      const m = motionRef.current;
+      m.targetOpacity = 0;
+      m.initialized = false;
+      if (nodeRef.current) nodeRef.current.style.opacity = "0";
+      return;
+    }
+
+    const posEase = reducedMotion.current ? 1 : 0.14;
+    const fadeEase = reducedMotion.current ? 1 : 0.16;
+
+    const tick = () => {
+      const m = motionRef.current;
+      const el = nodeRef.current;
+      const show = !dragActiveRef.current && !lightboxOpen && m.targetOpacity > 0.01;
+
+      if (show || m.opacity > 0.01) {
+        m.x += (m.tx - m.x) * posEase;
+        m.y += (m.ty - m.y) * posEase;
+      }
+      const targetOp = show ? m.targetOpacity : 0;
+      m.opacity += (targetOp - m.opacity) * fadeEase;
+
+      if (el) {
+        el.style.transform = `translate3d(${m.x}px, ${m.y}px, 0) translate(-50%, -50%)`;
+        el.style.opacity = String(m.opacity);
+      }
+      m.raf = requestAnimationFrame(tick);
+    };
+
+    motionRef.current.raf = requestAnimationFrame(tick);
+    return () => {
+      if (motionRef.current.raf) cancelAnimationFrame(motionRef.current.raf);
+      motionRef.current.raf = null;
+    };
+  }, [enabled, dragActiveRef, lightboxOpen]);
+
+  if (!enabled) return null;
+
+  return (
+    <div ref={nodeRef} className="photo-eye-cursor" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+        <circle cx="12" cy="12" r="3" />
+      </svg>
+    </div>
+  );
+}
+
 function PhotographyView({ photoGroups, photoEdits, selectedPhotoSrc, photoPickMode, onSelectPhoto }) {
   const scrollRef = useRef(null);
   const dragRef   = useRef({ active: false, startX: 0, scrollLeft: 0, lastX: 0, lastT: 0, velocity: 0 });
+  const dragActiveRef = useRef(false);
   const smoothRef = useRef({ target: null, raf: null, momentumRaf: null });
   const didDragRef = useRef(false);
+  const showSmoothEye = !photoPickMode;
   const [lightboxSrc, setLightboxSrc] = useState(null);
   const openLightbox = useCallback((src) => setLightboxSrc(src), []);
   const closeLightbox = useCallback(() => setLightboxSrc(null), []);
@@ -1510,6 +1601,7 @@ function PhotographyView({ photoGroups, photoEdits, selectedPhotoSrc, photoPickM
     stopSmooth();
     smoothRef.current.target = el.scrollLeft;
     didDragRef.current = false;
+    dragActiveRef.current = true;
     const now = performance.now();
     dragRef.current = {
       active: true,
@@ -1526,6 +1618,7 @@ function PhotographyView({ photoGroups, photoEdits, selectedPhotoSrc, photoPickM
     const drag = dragRef.current;
     if (!drag.active) return;
     drag.active = false;
+    dragActiveRef.current = false;
     if (scrollRef.current) {
       scrollRef.current.style.cursor = "grab";
       smoothRef.current.target = scrollRef.current.scrollLeft;
@@ -1552,7 +1645,16 @@ function PhotographyView({ photoGroups, photoEdits, selectedPhotoSrc, photoPickM
   }, []);
 
   return (
-    <div className="photography-view" style={{ height: "calc(100vh - var(--photo-header-h))", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+    <div
+      className={`photography-view${showSmoothEye ? " photography-view--smooth-eye" : ""}`}
+      style={{ height: "calc(100vh - var(--photo-header-h))", display: "flex", flexDirection: "column", overflow: "hidden" }}
+    >
+      <PhotoEyeCursor
+        enabled={showSmoothEye}
+        scrollRef={scrollRef}
+        dragActiveRef={dragActiveRef}
+        lightboxOpen={!!lightboxSrc}
+      />
 
       {/* ── horizontal photo strip ── */}
       <div
@@ -1642,7 +1744,7 @@ function PhotographyView({ photoGroups, photoEdits, selectedPhotoSrc, photoPickM
                         padding: 0,
                         border: "none",
                         background: "none",
-                        cursor: photoPickMode ? "pointer" : "zoom-in",
+                        cursor: photoPickMode ? "pointer" : "none",
                         flexShrink: 0,
                       }}
                     >
@@ -2207,6 +2309,25 @@ styleEl.textContent = `
   .photo-nav-item { transition: color .2s ease; }
   .photo-nav-item:hover { color: var(--ink) !important; }
   .photo-frame { display: block; border-radius: 2px; }
+  .photography-view--smooth-eye .photo-frame { cursor: none; }
+  .photography-view--smooth-eye .photo-frame img { cursor: none; }
+  .photo-eye-cursor {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 48px;
+    height: 48px;
+    pointer-events: none;
+    z-index: 40;
+    opacity: 0;
+    will-change: transform, opacity;
+  }
+  .photo-eye-cursor svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.45));
+  }
   .photo-frame--selected {
     outline: 2px solid var(--accent);
     outline-offset: 3px;
