@@ -989,18 +989,17 @@ const CAMARITA_IMAGES = [
   "Images_camarita/DSC03443.JPG",
   "Images_camarita/DSC03536.JPG",
   "Images_camarita/DSC03547.JPG",
+  "Images_camarita/DSC03157.JPG",
   "Images_camarita/DSC03550.JPG",
-  "Images_camarita/DSC03571.JPG",
-  "Images_camarita/DSC03631.JPG",
-  "Images_camarita/DSC03657.JPG",
-  "Images_camarita/DSC03658.JPG",
-  "Images_camarita/DSC03660.JPG",
-  "Images_camarita/DSC03664.JPG",
   "Images_camarita/DSC03730.JPG",
+  "Images_camarita/DSC03657.JPG",
   "Images_camarita/DSC03762.JPG",
+  "Images_camarita/DSC03773.JPG",
   "Images_camarita/DSC03772.JPG",
   "Images_camarita/DSC03769.JPG",
-  "Images_camarita/DSC03773.JPG",
+  "Images_camarita/DSC03383.JPG",
+  "Images_camarita/DSC03571.JPG",
+  "Images_camarita/DSC03658.JPG",
   "Images_camarita/DSC03883.JPG",
 ];
 
@@ -1187,17 +1186,17 @@ const PHOTO_EDITS = {
   "Images_camarita/DSC03443.JPG": { ar: 1.8 },
   "Images_camarita/DSC03536.JPG": { ar: 1.8 },
   "Images_camarita/DSC03547.JPG": { ar: 1.8 },
-  "Images_camarita/DSC03550.JPG": { ar: 1.8 },
-  "Images_camarita/DSC03571.JPG": { ar: 1.8 },
+  "Images_camarita/DSC03157.JPG": { ar: 1.8 },
+  "Images_camarita/DSC03550.JPG": { ar: 1.29, posX: 36 },
+  "Images_camarita/DSC03730.JPG": { ar: 1.29, posY: 82 },
   "Images_camarita/DSC03657.JPG": { ar: 1.8 },
-  "Images_camarita/DSC03658.JPG": { ar: 1.8 },
-  "Images_camarita/DSC03660.JPG": { ar: 1.16, posX: 16 },
-  "Images_camarita/DSC03664.JPG": { ar: 1.02 },
-  "Images_camarita/DSC03730.JPG": { ar: 1.8 },
   "Images_camarita/DSC03762.JPG": { ar: 1.8 },
+  "Images_camarita/DSC03773.JPG": { ar: 1.8, posX: 30, posY: 27 },
   "Images_camarita/DSC03772.JPG": { ar: 1.8 },
   "Images_camarita/DSC03769.JPG": { ar: 1.8 },
-  "Images_camarita/DSC03773.JPG": { ar: 1.8, posX: 30, posY: 27 },
+  "Images_camarita/DSC03383.JPG": { ar: 1.8 },
+  "Images_camarita/DSC03571.JPG": { ar: 1.61, posX: 100, posY: 88 },
+  "Images_camarita/DSC03658.JPG": { ar: 1.6, posX: 0, posY: 0 },
   "Images_camarita/DSC03883.JPG": { ar: 0.5, posY: 100 },
 };
 
@@ -1658,8 +1657,10 @@ function PhotoEditorPanel({
           options={[
             { value: "", label: "Choose photo…" },
             ...galleryImages
-              .filter((s) => s !== src)
-              .map((s) => ({ value: s, label: photoFileName(s) })),
+              .flatMap((s, i) => s === src ? [] : [{
+                value: s,
+                label: `${i + 1}. ${photoFileName(s)}`,
+              }]),
           ]}
           onChange={(v) => {
             if (v) swapPhoto(v);
