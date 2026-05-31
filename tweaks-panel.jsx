@@ -538,3 +538,11 @@ Object.assign(window, {
   TweakSlider, TweakToggle, TweakRadio, TweakSelect,
   TweakText, TweakNumber, TweakColor, TweakButton,
 });
+
+(function injectTwkStyles() {
+  if (document.getElementById("twk-styles")) return;
+  const el = document.createElement("style");
+  el.id = "twk-styles";
+  el.textContent = __TWEAKS_STYLE;
+  document.head.appendChild(el);
+})();

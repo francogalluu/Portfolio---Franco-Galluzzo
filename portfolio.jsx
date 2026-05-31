@@ -1,4 +1,4 @@
-const { useState, useEffect, useRef, useCallback } = React;
+const { useState, useEffect, useRef, useCallback, useMemo } = React;
 
 /* ============================================================
    TWEAKS
@@ -6,7 +6,6 @@ const { useState, useEffect, useRef, useCallback } = React;
 const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
   "fontPair": "humanist",
   "density": "comfortable",
-  "gallery": "uniform",
   "grayTone": "neutral",
   "layout": "minimal",
   "accent": "#F59425"
@@ -987,33 +986,22 @@ const CAMARITA_IMAGES = [
   "Images_camarita/DSC02832.JPG",
   "Images_camarita/DSC02840.JPG",
   "Images_camarita/DSC03359.JPG",
-  "Images_camarita/DSC03398.JPG",
   "Images_camarita/DSC03443.JPG",
-  "Images_camarita/DSC03447.JPG",
   "Images_camarita/DSC03536.JPG",
   "Images_camarita/DSC03547.JPG",
   "Images_camarita/DSC03550.JPG",
   "Images_camarita/DSC03571.JPG",
-  "Images_camarita/DSC03600.JPG",
-  "Images_camarita/DSC03614.JPG",
   "Images_camarita/DSC03631.JPG",
-  "Images_camarita/DSC03643.JPG",
-  "Images_camarita/DSC03652.JPG",
   "Images_camarita/DSC03657.JPG",
   "Images_camarita/DSC03658.JPG",
   "Images_camarita/DSC03660.JPG",
-  "Images_camarita/DSC03663.JPG",
   "Images_camarita/DSC03664.JPG",
   "Images_camarita/DSC03730.JPG",
-  "Images_camarita/DSC03731.JPG",
-  "Images_camarita/DSC03738.JPG",
   "Images_camarita/DSC03762.JPG",
-  "Images_camarita/DSC03769.JPG",
   "Images_camarita/DSC03772.JPG",
+  "Images_camarita/DSC03769.JPG",
   "Images_camarita/DSC03773.JPG",
-  "Images_camarita/DSC03850.JPG",
   "Images_camarita/DSC03883.JPG",
-  "Images_camarita/DSC03909.JPG",
 ];
 
 const PHOTO_LAYOUT_GROUPS = [
@@ -1149,22 +1137,222 @@ const PHOTO_LAYOUT_GROUPS = [
 
 function assignPhotoSources(groups, images) {
   let i = 0;
-  return groups.map((group) => ({
-    ...group,
-    cols: group.cols.map((col) =>
-      col.map((photo) => ({
-        ...photo,
-        src: images[i++] ?? images[images.length - 1],
-      }))
-    ),
-  }));
+  return groups
+    .map((group) => ({
+      ...group,
+      cols: group.cols
+        .map((col) => {
+          const assigned = [];
+          for (const photo of col) {
+            if (i >= images.length) break;
+            assigned.push({
+              ...photo,
+              src: images[i++],
+            });
+          }
+          if (!assigned.length) return null;
+          const colLength = assigned.length;
+          return assigned.map((p) => ({ ...p, colLength }));
+        })
+        .filter(Boolean),
+    }))
+    .filter((group) => group.cols.length > 0);
 }
 
-const PHOTO_GROUPS = assignPhotoSources(PHOTO_LAYOUT_GROUPS, CAMARITA_IMAGES);
+function buildPhotoGroups(images) {
+  return assignPhotoSources(PHOTO_LAYOUT_GROUPS, images);
+}
+
+function flattenPhotoList(groups) {
+  return groups.flatMap((group) => group.cols.flatMap((col) => col));
+}
+
+function moveGalleryImage(images, fromIdx, toIdx) {
+  if (toIdx < 0 || toIdx >= images.length || fromIdx === toIdx) return images;
+  const next = [...images];
+  [next[fromIdx], next[toIdx]] = [next[toIdx], next[fromIdx]];
+  return next;
+}
+
+function removeGalleryImage(images, idx) {
+  return images.filter((_, i) => i !== idx);
+}
+
+/* Saved crop & frame adjustments (from photo editor) */
+const PHOTO_EDITS = {
+  "Images_camarita/DSC02823.JPG": { ar: 1.08 },
+  "Images_camarita/DSC02832.JPG": { ar: 1.08, posY: 73 },
+  "Images_camarita/DSC02840.JPG": { ar: 0.83, posX: 41, posY: 52 },
+  "Images_camarita/DSC03359.JPG": { ar: 1.8, posX: 73, posY: 43 },
+  "Images_camarita/DSC03443.JPG": { ar: 1.8 },
+  "Images_camarita/DSC03536.JPG": { ar: 1.8 },
+  "Images_camarita/DSC03547.JPG": { ar: 1.8 },
+  "Images_camarita/DSC03550.JPG": { ar: 1.8 },
+  "Images_camarita/DSC03571.JPG": { ar: 1.8 },
+  "Images_camarita/DSC03657.JPG": { ar: 1.8 },
+  "Images_camarita/DSC03658.JPG": { ar: 1.8 },
+  "Images_camarita/DSC03660.JPG": { ar: 1.16, posX: 16 },
+  "Images_camarita/DSC03664.JPG": { ar: 1.02 },
+  "Images_camarita/DSC03730.JPG": { ar: 1.8 },
+  "Images_camarita/DSC03762.JPG": { ar: 1.8 },
+  "Images_camarita/DSC03772.JPG": { ar: 1.8 },
+  "Images_camarita/DSC03769.JPG": { ar: 1.8 },
+  "Images_camarita/DSC03773.JPG": { ar: 1.8, posX: 30, posY: 27 },
+  "Images_camarita/DSC03883.JPG": { ar: 0.5, posY: 100 },
+};
+
+function parseClampHeight(h) {
+  const m = String(h).match(/clamp\((\d+)px,\s*([\d.]+)vh,\s*(\d+)px\)/);
+  if (!m) return { min: 200, vh: 30, max: 300 };
+  return { min: Number(m[1]), vh: Number(m[2]), max: Number(m[3]) };
+}
+
+function buildClampHeight({ min, vh, max }) {
+  return `clamp(${Math.round(min)}px, ${vh}vh, ${Math.round(max)}px)`;
+}
+
+function photoWebSrc(src) {
+  return `Images_camarita/web/${src.split("/").pop()}`;
+}
+
+function photoFrameHeight(colLength, frameHPct = 100) {
+  const base = colLength <= 1
+    ? "var(--photo-view-h)"
+    : `calc((var(--photo-view-h) - ${(colLength - 1) * 18}px) / ${colLength})`;
+  if (frameHPct >= 100) return base;
+  return `calc(${base} * ${frameHPct / 100})`;
+}
+
+function photoDefaults(photo) {
+  return {
+    posX: 50,
+    posY: 50,
+    zoom: 1,
+    frameH: 100,
+    ar: Number(photo.ar),
+  };
+}
+
+function effectivePhotoEdit(photo, edits) {
+  return { ...photoDefaults(photo), ...(PHOTO_EDITS[photo.src] || {}), ...(edits || {}) };
+}
+
+function photoFrameStyle(photo, colLength, edits) {
+  const e = effectivePhotoEdit(photo, edits);
+  const frameH = e.frameH ?? 100;
+  return {
+    height: photoFrameHeight(colLength, frameH),
+    aspectRatio: String(e.ar),
+    overflow: "hidden",
+    position: "relative",
+    flexShrink: 0,
+    display: "block",
+    alignSelf: frameH < 100 ? "flex-start" : "stretch",
+  };
+}
+
+function PhotoGalleryFrame({ photo, colLength, runtimeEdits }) {
+  const live = runtimeEdits && Object.keys(runtimeEdits).length > 0;
+  if (live) {
+    return (
+      <PhotoCropPreview
+        photo={photo}
+        colLength={colLength}
+        runtimeEdits={runtimeEdits}
+      />
+    );
+  }
+  return (
+    <div style={photoFrameStyle(photo, colLength, null)}>
+      <img
+        src={photoWebSrc(photo.src)}
+        alt=""
+        loading="lazy"
+        draggable="false"
+        onError={(e) => {
+          if (!e.currentTarget.dataset.fallback) {
+            e.currentTarget.dataset.fallback = "1";
+            e.currentTarget.src = photo.src;
+          }
+        }}
+        style={{ width: "100%", height: "100%", display: "block" }}
+      />
+    </div>
+  );
+}
+
+function PhotoCropPreview({ photo, colLength, runtimeEdits }) {
+  const wrapRef = useRef(null);
+  const edit = effectivePhotoEdit(photo, runtimeEdits);
+  const frame = photoFrameStyle(photo, colLength, runtimeEdits);
+  const [crop, setCrop] = useState(null);
+
+  const applyCrop = useCallback(() => {
+    const wrap = wrapRef.current;
+    const img = wrap?.querySelector("img");
+    if (!wrap || !img?.naturalWidth) return;
+
+    const cw = wrap.clientWidth;
+    const ch = wrap.clientHeight;
+    if (!cw || !ch) return;
+
+    const nw = img.naturalWidth;
+    const nh = img.naturalHeight;
+    const zoom = edit.zoom ?? 1;
+    const scale = Math.max(cw / nw, ch / nh) * zoom;
+    const sw = nw * scale;
+    const sh = nh * scale;
+    const maxPanX = Math.max(0, (sw - cw) / 2);
+    const maxPanY = Math.max(0, (sh - ch) / 2);
+    const tx = ((50 - edit.posX) / 50) * maxPanX;
+    const ty = ((50 - edit.posY) / 50) * maxPanY;
+
+    setCrop({ sw, sh, tx, ty });
+  }, [edit.posX, edit.posY, edit.zoom, edit.ar, edit.frameH, colLength]);
+
+  useEffect(() => {
+    applyCrop();
+    const wrap = wrapRef.current;
+    if (!wrap || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(applyCrop);
+    ro.observe(wrap);
+    return () => ro.disconnect();
+  }, [applyCrop]);
+
+  const imgStyle = crop ? {
+    position: "absolute",
+    left: "50%",
+    top: "50%",
+    width: crop.sw,
+    height: crop.sh,
+    maxWidth: "none",
+    transform: `translate(calc(-50% + ${crop.tx}px), calc(-50% + ${crop.ty}px))`,
+    display: "block",
+  } : {
+    width: "100%",
+    height: "100%",
+    objectFit: "cover",
+    objectPosition: `${edit.posX}% ${edit.posY}%`,
+    display: "block",
+  };
+
+  return (
+    <div ref={wrapRef} style={frame}>
+      <img
+        src={photo.src}
+        alt=""
+        loading="lazy"
+        draggable="false"
+        onLoad={applyCrop}
+        style={imgStyle}
+      />
+    </div>
+  );
+}
 
 const PHOTO_NAV = ["Film", "35mm", "Lisbon", "Travel", "Still Life", "Contact"];
 
-function PhotographyView() {
+function PhotographyView({ photoGroups, photoEdits, selectedPhotoSrc, photoPickMode, onSelectPhoto }) {
   const scrollRef = useRef(null);
   const dragRef   = useRef({ active: false, startX: 0, scrollLeft: 0 });
 
@@ -1191,11 +1379,12 @@ function PhotographyView() {
 
   /* click-drag to scroll */
   const onMouseDown = useCallback((e) => {
+    if (photoPickMode && e.target.closest(".photo-frame")) return;
     const el = scrollRef.current;
     if (!el) return;
     dragRef.current = { active: true, startX: e.pageX, scrollLeft: el.scrollLeft };
     el.style.cursor = "grabbing";
-  }, []);
+  }, [photoPickMode]);
 
   const onMouseUp = useCallback(() => {
     dragRef.current.active = false;
@@ -1210,7 +1399,7 @@ function PhotographyView() {
   }, []);
 
   return (
-    <div style={{ height: "calc(100vh - 60px)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+    <div className="photography-view" style={{ height: "calc(100vh - var(--photo-header-h))", display: "flex", flexDirection: "column", overflow: "hidden" }}>
 
       {/* ── horizontal photo strip ── */}
       <div
@@ -1225,44 +1414,57 @@ function PhotographyView() {
           overflowX: "auto",
           overflowY: "hidden",
           display: "flex",
-          alignItems: "center",
+          alignItems: "stretch",
           gap: "clamp(24px, 3.5vw, 52px)",
-          padding: "clamp(4px, 0.5vh, 10px) clamp(24px, 5vw, 80px) 4px",
+          padding: "0 clamp(24px, 5vw, 80px)",
           scrollbarWidth: "none",
           msOverflowStyle: "none",
           cursor: "grab",
           userSelect: "none",
         }}
       >
-        {PHOTO_GROUPS.map((group, gi) => (
+        {photoGroups.map((group, gi) => (
           <div
             key={gi}
             style={{
               display: "flex",
-              gap: "clamp(10px, 1.4vw, 18px)",
-              marginTop: group.mt,
+              gap: "18px",
               flexShrink: 0,
-              alignItems: "flex-start",
+              alignItems: "stretch",
+              alignSelf: "stretch",
             }}
           >
             {group.cols.map((col, ci) => (
-              <div key={ci} style={{ display: "flex", flexDirection: "column", gap: "clamp(10px, 1.4vw, 18px)" }}>
-                {col.map((photo, pi) => (
-                  <img
-                    key={pi}
-                    src={photo.src}
-                    alt=""
-                    loading="lazy"
-                    draggable="false"
-                    style={{
-                      height: photo.h,
-                      aspectRatio: photo.ar,
-                      objectFit: "cover",
-                      display: "block",
-                      flexShrink: 0,
-                    }}
-                  />
-                ))}
+              <div key={ci} style={{ display: "flex", flexDirection: "column", gap: "18px", alignSelf: "stretch" }}>
+                {col.map((photo, pi) => {
+                  const selected = photo.src === selectedPhotoSrc;
+                  return (
+                    <button
+                      key={pi}
+                      type="button"
+                      className={`photo-frame${selected ? " photo-frame--selected" : ""}`}
+                      aria-label={photoPickMode ? `Select ${photo.src.split("/").pop()}` : undefined}
+                      aria-pressed={photoPickMode ? selected : undefined}
+                      onClick={photoPickMode ? (e) => {
+                        e.stopPropagation();
+                        onSelectPhoto?.(photo.src);
+                      } : undefined}
+                      style={{
+                        padding: 0,
+                        border: "none",
+                        background: "none",
+                        cursor: photoPickMode ? "pointer" : "inherit",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <PhotoGalleryFrame
+                        photo={photo}
+                        colLength={photo.colLength || col.length}
+                        runtimeEdits={photoEdits?.[photo.src]}
+                      />
+                    </button>
+                  );
+                })}
               </div>
             ))}
           </div>
@@ -1291,6 +1493,199 @@ function PhotographyView() {
         ))}
       </nav>
 
+    </div>
+  );
+}
+
+/* ============================================================
+   PHOTO TWEAKS (Tweaks panel controls)
+   ============================================================ */
+function photoFileName(src) {
+  return src.split("/").pop();
+}
+
+function PhotoEditorPanel({
+  galleryImages,
+  setGalleryImages,
+  photoList,
+  photoEdits,
+  setPhotoEdits,
+  photoPickMode,
+  setPhotoPickMode,
+  selectedPhotoSrc,
+  setSelectedPhotoSrc,
+}) {
+  const [open, setOpen] = useState(true);
+  const [swapTarget, setSwapTarget] = useState("");
+  const photo = photoList.find((p) => p.src === selectedPhotoSrc) || photoList[0];
+  const src = photo?.src;
+  const galleryIdx = src ? galleryImages.indexOf(src) : -1;
+  const edits = photoEdits || {};
+  const cur = photo ? effectivePhotoEdit(photo, edits[src]) : null;
+
+  const movePhoto = (delta) => {
+    if (galleryIdx < 0) return;
+    const next = moveGalleryImage(galleryImages, galleryIdx, galleryIdx + delta);
+    if (next !== galleryImages) setGalleryImages(next);
+  };
+
+  const swapPhoto = (otherSrc) => {
+    if (!otherSrc || galleryIdx < 0) return;
+    const otherIdx = galleryImages.indexOf(otherSrc);
+    if (otherIdx < 0) return;
+    setGalleryImages(moveGalleryImage(galleryImages, galleryIdx, otherIdx));
+    setSwapTarget("");
+  };
+
+  const deletePhoto = () => {
+    if (galleryIdx < 0 || galleryImages.length <= 1) return;
+    const name = photoFileName(src);
+    if (!window.confirm(`Remove ${name} from the gallery?`)) return;
+    const next = removeGalleryImage(galleryImages, galleryIdx);
+    setGalleryImages(next);
+    setPhotoEdits((prev) => {
+      const cleaned = { ...prev };
+      delete cleaned[src];
+      return cleaned;
+    });
+    setSelectedPhotoSrc(next[Math.min(galleryIdx, next.length - 1)]);
+  };
+
+  const copyGalleryOrder = () => {
+    const text = JSON.stringify(galleryImages, null, 2);
+    navigator.clipboard?.writeText(text).catch(() => {});
+    window.prompt("Copy gallery order (Ctrl+C):", text);
+  };
+
+  const patchPhoto = (patchOrFn) => {
+    if (!src) return;
+    setPhotoEdits((prev) => {
+      const merged = effectivePhotoEdit(photo, prev[src]);
+      const patch = typeof patchOrFn === "function" ? patchOrFn(merged) : patchOrFn;
+      return { ...prev, [src]: { ...(prev[src] || {}), ...patch } };
+    });
+  };
+
+  const resetPhoto = () => {
+    if (!src) return;
+    setPhotoEdits((prev) => {
+      const next = { ...prev };
+      delete next[src];
+      return next;
+    });
+  };
+
+  const copyAllEdits = () => {
+    const payload = photoList.map((p) => {
+      const e = effectivePhotoEdit(p, edits[p.src]);
+      const base = photoDefaults(p);
+      const changed =
+        e.posX !== base.posX || e.posY !== base.posY || (e.zoom ?? 1) !== (base.zoom ?? 1) ||
+        (e.frameH ?? 100) !== 100 || e.ar !== base.ar;
+      if (!changed) return null;
+      const row = { file: photoFileName(p.src), src: p.src, ar: e.ar };
+      if (e.posX !== 50) row.posX = e.posX;
+      if (e.posY !== 50) row.posY = e.posY;
+      if ((e.zoom ?? 1) !== 1) row.zoom = e.zoom ?? 1;
+      if ((e.frameH ?? 100) !== 100) row.frameH = e.frameH ?? 100;
+      return row;
+    }).filter(Boolean);
+    const text = JSON.stringify(payload, null, 2);
+    navigator.clipboard?.writeText(text).catch(() => {});
+    window.prompt("Copy your photo edits (Ctrl+C):", text);
+  };
+
+  if (!photo || !cur || galleryImages.length === 0) return null;
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        className="photo-editor-toggle"
+        onClick={() => setOpen(true)}
+        aria-label="Open photo editor"
+      >
+        Edit photos
+      </button>
+    );
+  }
+
+  return (
+    <div
+      className="photo-editor-panel"
+      data-omelette-chrome=""
+      onMouseDown={(e) => e.stopPropagation()}
+      onPointerDown={(e) => e.stopPropagation()}
+      onWheel={(e) => e.stopPropagation()}
+    >
+      <div className="photo-editor-panel__hd">
+        <b>Photo editor</b>
+        <button
+          type="button"
+          className="twk-x"
+          aria-label="Close photo editor"
+          onClick={() => setOpen(false)}
+        >
+          ✕
+        </button>
+      </div>
+      <div className="photo-editor-panel__body">
+        <p className="photo-editor-panel__hint">
+          Frames fill the screen below the header. Adjust crop, then copy edits and run
+          <code style={{ fontSize: "10px" }}> npm run bake-photos</code> to save real crops.
+        </p>
+        <TweakToggle label="Click photo to select" value={photoPickMode}
+          onChange={setPhotoPickMode} />
+        <TweakSelect label="Photo" value={src}
+          options={galleryImages.map((s, i) => ({
+            value: s,
+            label: `${i + 1}. ${photoFileName(s)}`,
+          }))}
+          onChange={setSelectedPhotoSrc} />
+
+        <TweakSection label="Gallery order" />
+        <p className="photo-editor-panel__hint" style={{ margin: "0 0 4px" }}>
+          {galleryIdx >= 0 ? `Position ${galleryIdx + 1} of ${galleryImages.length}` : ""}
+        </p>
+        <div className="photo-editor-panel__row-btns">
+          <TweakButton label="Move earlier" secondary
+            onClick={() => movePhoto(-1)} />
+          <TweakButton label="Move later" secondary
+            onClick={() => movePhoto(1)} />
+        </div>
+        {galleryImages.length > 1 &&
+        <TweakSelect label="Swap with" value={swapTarget}
+          options={[
+            { value: "", label: "Choose photo…" },
+            ...galleryImages
+              .filter((s) => s !== src)
+              .map((s) => ({ value: s, label: photoFileName(s) })),
+          ]}
+          onChange={(v) => {
+            if (v) swapPhoto(v);
+            setSwapTarget("");
+          }} />
+        }
+        <TweakButton label="Delete from gallery" secondary onClick={deletePhoto} />
+        <TweakButton label="Copy gallery order" secondary onClick={copyGalleryOrder} />
+
+        <TweakSection label="Crop" />
+        <TweakSlider label="Horizontal" value={cur.posX} min={0} max={100} unit="%"
+          onChange={(v) => patchPhoto({ posX: v })} />
+        <TweakSlider label="Vertical" value={cur.posY} min={0} max={100} unit="%"
+          onChange={(v) => patchPhoto({ posY: v })} />
+        <TweakSlider label="Zoom" value={Math.round((cur.zoom ?? 1) * 100) / 100} min={1} max={1.4} step={0.01}
+          onChange={(v) => patchPhoto({ zoom: v })} />
+
+        <TweakSection label="Frame" />
+        <TweakSlider label="Frame height" value={cur.frameH ?? 100} min={40} max={100} unit="%"
+          onChange={(v) => patchPhoto({ frameH: v })} />
+        <TweakSlider label="Frame width" value={Math.round(cur.ar * 100) / 100} min={0.5} max={1.8} step={0.01}
+          onChange={(v) => patchPhoto({ ar: v })} />
+
+        <TweakButton label="Reset this photo" secondary onClick={resetPhoto} />
+        <TweakButton label="Copy all edits" onClick={copyAllEdits} />
+      </div>
     </div>
   );
 }
@@ -1344,6 +1739,19 @@ function App() {
   const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
   const [view, setView] = useState("Projects");
   const [activeProject, setActiveProject] = useState(null);
+  const [galleryImages, setGalleryImages] = useState(CAMARITA_IMAGES);
+  const [selectedPhotoSrc, setSelectedPhotoSrc] = useState(CAMARITA_IMAGES[0]);
+  const [photoEdits, setPhotoEdits] = useState({});
+  const [photoPickMode, setPhotoPickMode] = useState(true);
+
+  const photoGroups = useMemo(
+    () => buildPhotoGroups(galleryImages),
+    [galleryImages]
+  );
+  const photoList = useMemo(
+    () => flattenPhotoList(photoGroups),
+    [photoGroups]
+  );
 
   const setViewAndTop = useCallback((v) => {
     setActiveProject(null);
@@ -1403,11 +1811,33 @@ function App() {
             <ProjectsView layout={t.layout} onOpenProject={openProject} />
           </React.Fragment>
         }
-        {view === "Photography" && <PhotographyView />}
+        {view === "Photography" &&
+        <PhotographyView
+          photoGroups={photoGroups}
+          photoEdits={photoEdits}
+          selectedPhotoSrc={selectedPhotoSrc}
+          photoPickMode={photoPickMode}
+          onSelectPhoto={setSelectedPhotoSrc}
+        />
+        }
         {view === "About" && <AboutView />}
       </div>
 
       {view !== "Photography" && <Footer />}
+
+      {view === "Photography" &&
+      <PhotoEditorPanel
+        galleryImages={galleryImages}
+        setGalleryImages={setGalleryImages}
+        photoList={photoList}
+        photoEdits={photoEdits}
+        setPhotoEdits={setPhotoEdits}
+        photoPickMode={photoPickMode}
+        setPhotoPickMode={setPhotoPickMode}
+        selectedPhotoSrc={selectedPhotoSrc}
+        setSelectedPhotoSrc={setSelectedPhotoSrc}
+      />
+      }
 
       <TweaksPanel>
         <TweakSection label="Type" />
@@ -1431,15 +1861,6 @@ function App() {
         options={["compact", "comfortable", "airy"]}
         onChange={(v) => setTweak("density", v)} />
 
-        <TweakSection label="Photography" />
-        <TweakSelect label="Gallery" value={t.gallery}
-        options={[
-        { value: "uniform", label: "Uniform grid" },
-        { value: "masonry", label: "Masonry" },
-        { value: "single", label: "Single column" }]
-        }
-        onChange={(v) => setTweak("gallery", v)} />
-
         <TweakSection label="Tone" />
         <TweakColor label="Accent" value={t.accent}
         options={["#F59425", "#111111", "#5B6B82", "#B4452F"]}
@@ -1458,6 +1879,10 @@ styleEl.textContent = `
   :root {
     --project-block-w: 560px;
     --project-media-h: clamp(220px, 28vw, 390px);
+    --photo-header-h: 60px;
+    --photo-nav-h: 48px;
+    --photo-chrome: calc(var(--photo-header-h) + var(--photo-nav-h));
+    --photo-view-h: calc(100vh - var(--photo-chrome));
   }
   .view-fade { animation: viewFade .42s cubic-bezier(.2,.7,.2,1); }
   @keyframes viewFade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
@@ -1529,8 +1954,97 @@ styleEl.textContent = `
     to { opacity: 1; transform: translateY(0); }
   }
   .photo-hscroll::-webkit-scrollbar { display: none; }
+  .photography-view .photo-hscroll { min-height: 0; }
   .photo-nav-item { transition: color .2s ease; }
   .photo-nav-item:hover { color: var(--ink) !important; }
+  .photo-frame { display: block; border-radius: 2px; }
+  .photo-frame--selected {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+  }
+  .photo-frame:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+  }
+  .photo-editor-panel {
+    position: fixed;
+    right: 16px;
+    bottom: 16px;
+    z-index: 2147483645;
+    width: 280px;
+    max-height: calc(100vh - 32px);
+    display: flex;
+    flex-direction: column;
+    background: rgba(250, 249, 247, .92);
+    color: #29261b;
+    -webkit-backdrop-filter: blur(24px) saturate(160%);
+    backdrop-filter: blur(24px) saturate(160%);
+    border: .5px solid rgba(255, 255, 255, .6);
+    border-radius: 14px;
+    box-shadow: 0 1px 0 rgba(255, 255, 255, .5) inset, 0 12px 40px rgba(0, 0, 0, .18);
+    font: 11.5px/1.4 ui-sans-serif, system-ui, -apple-system, sans-serif;
+    overflow: hidden;
+  }
+  .photo-editor-panel__hd {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 8px 10px 14px;
+    user-select: none;
+  }
+  .photo-editor-panel__hd b {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: .01em;
+  }
+  .photo-editor-panel__body {
+    padding: 2px 14px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    min-height: 0;
+    max-height: calc(100vh - 120px);
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 0, 0, .15) transparent;
+  }
+  .photo-editor-panel__body .twk-slider {
+    pointer-events: auto;
+    touch-action: none;
+  }
+  .photo-editor-panel__row-btns {
+    display: flex;
+    gap: 8px;
+  }
+  .photo-editor-panel__row-btns .twk-btn {
+    flex: 1;
+  }
+  .photo-editor-panel__hint {
+    margin: 0;
+    font-size: 10px;
+    line-height: 1.45;
+    color: rgba(41, 38, 27, .55);
+  }
+  .photo-editor-toggle {
+    position: fixed;
+    right: 16px;
+    bottom: 16px;
+    z-index: 2147483645;
+    appearance: none;
+    border: .5px solid rgba(0, 0, 0, .1);
+    border-radius: 999px;
+    padding: 10px 16px;
+    background: rgba(250, 249, 247, .92);
+    color: #29261b;
+    font: 600 12px/1 ui-sans-serif, system-ui, -apple-system, sans-serif;
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, .12);
+  }
+  .photo-editor-toggle:hover {
+    background: #fff;
+  }
 `;
 document.head.appendChild(styleEl);
 

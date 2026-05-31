@@ -1,0 +1,11 @@
+{
+  "name": "franco-galluzzo-portfolio",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "bake-photos": "node scripts/bake-photo-crops.mjs"
+  },
+  "devDependencies": {
+    "sharp": "^0.34.2"
+  }
+}
