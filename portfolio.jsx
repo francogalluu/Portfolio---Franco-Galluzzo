@@ -1351,50 +1351,165 @@ function PhotoCropPreview({ photo, colLength, runtimeEdits }) {
 
 const PHOTO_NAV = ["Film", "35mm", "Lisbon", "Travel", "Still Life", "Contact"];
 
+function clampPhotoScroll(el, value) {
+  const max = Math.max(0, el.scrollWidth - el.clientWidth);
+  return Math.max(0, Math.min(max, value));
+}
+
 function PhotographyView({ photoGroups, photoEdits, selectedPhotoSrc, photoPickMode, onSelectPhoto }) {
   const scrollRef = useRef(null);
-  const dragRef   = useRef({ active: false, startX: 0, scrollLeft: 0 });
+  const dragRef   = useRef({ active: false, startX: 0, scrollLeft: 0, lastX: 0, lastT: 0, velocity: 0 });
+  const smoothRef = useRef({ target: null, raf: null, momentumRaf: null });
+  const reducedMotion = useRef(
+    typeof window !== "undefined" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  );
+
+  const stopSmooth = useCallback(() => {
+    const s = smoothRef.current;
+    if (s.raf) cancelAnimationFrame(s.raf);
+    if (s.momentumRaf) cancelAnimationFrame(s.momentumRaf);
+    s.raf = null;
+    s.momentumRaf = null;
+  }, []);
+
+  const runSmoothScroll = useCallback(() => {
+    const el = scrollRef.current;
+    const s = smoothRef.current;
+    if (!el || s.raf) return;
+    const ease = reducedMotion.current ? 1 : 0.14;
+
+    const step = () => {
+      if (!scrollRef.current) {
+        s.raf = null;
+        return;
+      }
+      const target = s.target ?? el.scrollLeft;
+      const diff = target - el.scrollLeft;
+      if (Math.abs(diff) < 0.5) {
+        el.scrollLeft = target;
+        s.raf = null;
+        return;
+      }
+      el.scrollLeft += diff * ease;
+      s.raf = requestAnimationFrame(step);
+    };
+    s.raf = requestAnimationFrame(step);
+  }, []);
+
+  const setScrollTarget = useCallback((next) => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const s = smoothRef.current;
+    if (s.momentumRaf) {
+      cancelAnimationFrame(s.momentumRaf);
+      s.momentumRaf = null;
+    }
+    const base = s.target ?? el.scrollLeft;
+    s.target = clampPhotoScroll(el, base + next);
+    if (reducedMotion.current) {
+      el.scrollLeft = s.target;
+      return;
+    }
+    runSmoothScroll();
+  }, [runSmoothScroll]);
+
+  const runMomentum = useCallback((velocity) => {
+    const el = scrollRef.current;
+    if (!el || reducedMotion.current || Math.abs(velocity) < 0.4) return;
+    const s = smoothRef.current;
+    stopSmooth();
+    let v = velocity;
+    const friction = 0.92;
+
+    const step = () => {
+      if (!scrollRef.current || Math.abs(v) < 0.25) {
+        s.momentumRaf = null;
+        return;
+      }
+      const next = clampPhotoScroll(el, el.scrollLeft - v);
+      if (next === el.scrollLeft) {
+        s.momentumRaf = null;
+        s.target = el.scrollLeft;
+        return;
+      }
+      el.scrollLeft = next;
+      s.target = next;
+      v *= friction;
+      s.momentumRaf = requestAnimationFrame(step);
+    };
+    s.momentumRaf = requestAnimationFrame(step);
+  }, [stopSmooth]);
 
   /* lock body scroll while this view is mounted */
   useEffect(() => {
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    return () => { document.body.style.overflow = prev; };
-  }, []);
+    return () => {
+      document.body.style.overflow = prev;
+      stopSmooth();
+    };
+  }, [stopSmooth]);
 
-  /* vertical wheel → horizontal scroll */
+  /* vertical wheel → eased horizontal scroll */
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
     const onWheel = (e) => {
       if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
         e.preventDefault();
-        el.scrollLeft += e.deltaY * 1.15;
+        setScrollTarget(e.deltaY * 1.15);
       }
     };
     el.addEventListener("wheel", onWheel, { passive: false });
     return () => el.removeEventListener("wheel", onWheel);
-  }, []);
+  }, [setScrollTarget]);
 
   /* click-drag to scroll */
   const onMouseDown = useCallback((e) => {
     if (photoPickMode && e.target.closest(".photo-frame")) return;
     const el = scrollRef.current;
     if (!el) return;
-    dragRef.current = { active: true, startX: e.pageX, scrollLeft: el.scrollLeft };
+    stopSmooth();
+    smoothRef.current.target = el.scrollLeft;
+    const now = performance.now();
+    dragRef.current = {
+      active: true,
+      startX: e.pageX,
+      scrollLeft: el.scrollLeft,
+      lastX: e.pageX,
+      lastT: now,
+      velocity: 0,
+    };
     el.style.cursor = "grabbing";
-  }, [photoPickMode]);
+  }, [photoPickMode, stopSmooth]);
 
   const onMouseUp = useCallback(() => {
-    dragRef.current.active = false;
-    if (scrollRef.current) scrollRef.current.style.cursor = "grab";
-  }, []);
+    const drag = dragRef.current;
+    if (!drag.active) return;
+    drag.active = false;
+    if (scrollRef.current) {
+      scrollRef.current.style.cursor = "grab";
+      smoothRef.current.target = scrollRef.current.scrollLeft;
+      runMomentum(drag.velocity);
+    }
+  }, [runMomentum]);
 
   const onMouseMove = useCallback((e) => {
     if (!dragRef.current.active) return;
     e.preventDefault();
-    const walk = (e.pageX - dragRef.current.startX) * 1.4;
-    scrollRef.current.scrollLeft = dragRef.current.scrollLeft - walk;
+    const el = scrollRef.current;
+    const drag = dragRef.current;
+    const now = performance.now();
+    const dt = Math.max(now - drag.lastT, 1);
+    const walk = (e.pageX - drag.startX) * 1.4;
+    const next = clampPhotoScroll(el, drag.scrollLeft - walk);
+    const instant = next - el.scrollLeft;
+    if (dt < 48) drag.velocity = drag.velocity * 0.55 + (instant / dt) * 16;
+    drag.lastX = e.pageX;
+    drag.lastT = now;
+    el.scrollLeft = next;
+    smoothRef.current.target = next;
   }, []);
 
   return (
@@ -1955,7 +2070,12 @@ styleEl.textContent = `
     to { opacity: 1; transform: translateY(0); }
   }
   .photo-hscroll::-webkit-scrollbar { display: none; }
-  .photography-view .photo-hscroll { min-height: 0; }
+  .photography-view .photo-hscroll {
+    min-height: 0;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    touch-action: pan-x;
+  }
   .photo-nav-item { transition: color .2s ease; }
   .photo-nav-item:hover { color: var(--ink) !important; }
   .photo-frame { display: block; border-radius: 2px; }
