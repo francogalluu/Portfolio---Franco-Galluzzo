@@ -112,12 +112,12 @@ const PROJECTS = [
   year: "2024",
   topic: "E-commerce",
   meta: "Sports retail · e-commerce · 2024",
-  blurb: "An online sports goods brand I built and ran\u2014400+ sales across equipment and apparel, from sourcing to fulfillment.",
+  blurb: "Co-founded a Football Jersey brand, scaled it to 400+ sales, and spent every day doing something I genuinely loved.",
   label: "e-commerce",
   icon: "assets/sportaz-icon.png",
   hero: "assets/sportaz-hero.png",
   tagline: "Sports goods, sold online",
-  intro: "Sportaz was my sports retail venture: curated gear and apparel sold direct to customers online. I handled branding, product selection, storefront, and orders end to end\u2014and crossed 400+ sales.",
+  intro: "Co-founded a Football Jersey brand, scaled it to 400+ sales, and spent every day doing something I genuinely loved.",
   sections: [
     {
       title: "Brand & storefront",
