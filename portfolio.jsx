@@ -981,6 +981,10 @@ function ProjectsView({ layout, onOpenProject }) {
 /* ============================================================
    PHOTOGRAPHY  — horizontal collage, scroll-jacked
    ============================================================ */
+const PHOTO_CAMERA_SRC = "assets/sony-cybershot-camera.png";
+const PHOTO_CAMERA_LABEL = "Sony Cyber-shot DSC-W320";
+const PHOTO_NAV = [PHOTO_CAMERA_LABEL];
+
 const CAMARITA_IMAGES = [
   "Images_camarita/DSC02823.JPG",
   "Images_camarita/DSC02832.JPG",
@@ -1349,8 +1353,6 @@ function PhotoCropPreview({ photo, colLength, runtimeEdits }) {
   );
 }
 
-const PHOTO_NAV = ["Film", "35mm", "Lisbon", "Travel", "Still Life", "Contact"];
-
 function clampPhotoScroll(el, value) {
   const max = Math.max(0, el.scrollWidth - el.clientWidth);
   return Math.max(0, Math.min(max, value));
@@ -1530,13 +1532,46 @@ function PhotographyView({ photoGroups, photoEdits, selectedPhotoSrc, photoPickM
           display: "flex",
           alignItems: "stretch",
           gap: "clamp(24px, 3.5vw, 52px)",
-          padding: "0 clamp(24px, 5vw, 80px)",
+          padding: "0 clamp(24px, 5vw, 80px) 0 clamp(10px, 1.8vw, 20px)",
           scrollbarWidth: "none",
           msOverflowStyle: "none",
           cursor: "grab",
           userSelect: "none",
         }}
       >
+        <figure
+          className="photo-camera-intro"
+          style={{
+            flexShrink: 0,
+            alignSelf: "center",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 0,
+            margin: 0,
+            paddingRight: "clamp(4px, 0.8vw, 10px)",
+          }}
+        >
+          <img
+            src={PHOTO_CAMERA_SRC}
+            alt={PHOTO_CAMERA_LABEL}
+            draggable="false"
+            className="photo-camera-intro__img"
+            style={{
+              height: "clamp(140px, 28vh, 280px)",
+              width: "auto",
+              maxWidth: "min(20vw, 240px)",
+              display: "block",
+              objectFit: "contain",
+              marginBottom: "-2px",
+            }}
+          />
+          <figcaption style={{ margin: 0, lineHeight: 1, marginTop: "-4px" }}>
+            <Mono>{PHOTO_CAMERA_LABEL}</Mono>
+          </figcaption>
+        </figure>
+
         {photoGroups.map((group, gi) => (
           <div
             key={gi}
@@ -2075,6 +2110,10 @@ styleEl.textContent = `
     -webkit-overflow-scrolling: touch;
     overscroll-behavior-x: contain;
     touch-action: pan-x;
+  }
+  .photo-camera-intro__img {
+    pointer-events: none;
+    user-select: none;
   }
   .photo-nav-item { transition: color .2s ease; }
   .photo-nav-item:hover { color: var(--ink) !important; }
