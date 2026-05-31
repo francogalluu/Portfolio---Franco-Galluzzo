@@ -144,6 +144,94 @@ const PHOTOS = [
 { cap: "low tide", ratio: 1.5, shade: 0.91 }];
 
 
+const EDUCATION = [
+  {
+    degree: "Master\u2019s in Management, Analytics + AI",
+    school: "Universidad Torcuato Di Tella",
+    logo: "assets/about me/di tella.svg",
+    courses: []
+  },
+  {
+    degree: "Bachelor\u2019s Degree in Digital Business",
+    school: "Universidad de San Andr\u00e9s",
+    logo: "assets/about me/630bd3fd4d041c3b14c3529ba3433fcabc19a30b-5242880-removebg-preview.png",
+    courses: []
+  }
+];
+
+const CERTIFICATIONS_LINKEDIN =
+  "https://www.linkedin.com/in/franco-galluzzo/details/certifications/";
+
+const CERT_FILTERS = [
+  { id: "all", label: "All" },
+  { id: "data", label: "Data" },
+  { id: "code", label: "Code" },
+  { id: "ux", label: "UX/UI" }
+];
+
+const CERT_SCHOOL_LOGOS = {
+  Microsoft: "assets/about me/microsoft_logo_icon_181372.png",
+  Google: "assets/about me/Google.png",
+  Coursera: "assets/about me/coursera logo.webp",
+  DataCamp: "assets/about me/datacamp logo.png",
+  Meta: "assets/about me/meta logo.webp"
+};
+
+function certLogoForSchool(school, existing) {
+  if (existing) return existing;
+  return CERT_SCHOOL_LOGOS[school] || null;
+}
+
+const PROFESSIONAL_CERTIFICATIONS = [
+  {
+    degree: "Power BI Data Analyst Associate (PL-300)",
+    school: "Microsoft",
+    logo: "assets/about me/microsoft_logo_icon_181372.png",
+    courses: []
+  },
+  {
+    degree: "Google Data Analytics Specialization",
+    school: "Google",
+    logo: "assets/about me/Google.png",
+    courses: []
+  },
+  {
+    degree: "Google UX Design Specialization",
+    school: "Google",
+    logo: "assets/about me/Google.png",
+    courses: []
+  }
+];
+
+function inferCertCategory(degree) {
+  const d = degree.toLowerCase();
+  if (
+    d.includes("ux") || d.includes("ui ") || d.includes("(ui)") ||
+    d.includes("figma") || d.includes("wireframe") || d.includes("visual design") ||
+    d.includes("augmented reality") || d.includes("mobile ui") ||
+    d.includes("diseño de interfaz") || d.includes("experiencia de usuario") ||
+    d.includes("user experience") || d.includes("data-driven design")
+  ) {
+    return "ux";
+  }
+  if (
+    d.includes("python") || d.includes("web development") ||
+    d.includes("coding foundations") || d.includes("html and css")
+  ) {
+    return "code";
+  }
+  if (
+    d.includes("sql") || d.includes("data") || d.includes("power bi") ||
+    d.includes("pl-300") || d.includes("analytics") || d.includes("r programming") ||
+    d.includes("business intelligence") || d.includes("data engineering") ||
+    d.includes("generative ai") || d.includes("google ai") ||
+    d.includes("visualization")
+  ) {
+    return "data";
+  }
+  return null;
+}
+
 const NAV = ["Projects", "Photography", "About"];
 
 /* ============================================================
@@ -156,46 +244,57 @@ function SiteHeader({ view, setView }) {
   };
 
   return (
-    <header style={{
+    <header className="site-header" style={{
       position: "sticky", top: 0, zIndex: 50,
-      display: "flex", alignItems: "center", justifyContent: "space-between",
-      gap: "20px", flexWrap: "wrap",
-      padding: "clamp(12px, 2vh, 18px) var(--pad-x)",
+      padding: "clamp(12px, 2vh, 18px) 0",
       background: "oklch(0.992 var(--tone-c) var(--tone-h) / 0.92)",
       backdropFilter: "saturate(1.2) blur(12px)",
       WebkitBackdropFilter: "saturate(1.2) blur(12px)",
       borderBottom: "1px solid var(--line-soft)"
     }}>
-      <button
-        onClick={() => go("Projects")}
-        style={{
-          all: "unset", cursor: "pointer",
-          fontFamily: "var(--font-display)", fontWeight: 600,
-          fontSize: "0.8rem", letterSpacing: "-0.02em"
-        }}>
-        Franco Galluzzo
-      </button>
-      <nav style={{ display: "flex", gap: "clamp(18px, 3vw, 32px)", flexWrap: "wrap" }}>
-        {NAV.map((item) => {
-          const active = view === item;
-          return (
-            <button
-              key={item}
-              onClick={() => go(item)}
-              style={{
-                all: "unset", cursor: "pointer",
-                fontFamily: "var(--font-meta)", fontSize: "0.62rem",
-                letterSpacing: "var(--meta-tracking)",
-                textTransform: "var(--meta-transform)",
-                color: active ? "var(--ink)" : "var(--ink-3)",
-                borderBottom: active ? "1.5px solid var(--accent)" : "1.5px solid transparent",
-                paddingBottom: "2px",
-                transition: "color .2s ease, border-color .2s ease"
-              }}>
-              {item}
-            </button>);
-        })}
-      </nav>
+      <div className="site-header__inner" style={{
+        width: "100%",
+        maxWidth: "var(--content-maxw)",
+        margin: "0 auto",
+        padding: "0 var(--content-pad-x)",
+        boxSizing: "border-box",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: "20px",
+        flexWrap: "wrap"
+      }}>
+        <button
+          onClick={() => go("Projects")}
+          style={{
+            all: "unset", cursor: "pointer",
+            fontFamily: "var(--font-display)", fontWeight: 600,
+            fontSize: "0.8rem", letterSpacing: "-0.02em"
+          }}>
+          Franco Galluzzo
+        </button>
+        <nav style={{ display: "flex", gap: "clamp(18px, 3vw, 32px)", flexWrap: "wrap" }}>
+          {NAV.map((item) => {
+            const active = view === item;
+            return (
+              <button
+                key={item}
+                onClick={() => go(item)}
+                style={{
+                  all: "unset", cursor: "pointer",
+                  fontFamily: "var(--font-meta)", fontSize: "0.62rem",
+                  letterSpacing: "var(--meta-tracking)",
+                  textTransform: "var(--meta-transform)",
+                  color: active ? "var(--ink)" : "var(--ink-3)",
+                  borderBottom: active ? "1.5px solid var(--accent)" : "1.5px solid transparent",
+                  paddingBottom: "2px",
+                  transition: "color .2s ease, border-color .2s ease"
+                }}>
+                {item}
+              </button>);
+          })}
+        </nav>
+      </div>
     </header>);
 
 }
@@ -2031,21 +2130,353 @@ function PhotoEditorPanel({
 /* ============================================================
    ABOUT
    ============================================================ */
-function AboutView() {
+const EDUCATION_LOGO_W = 44;
+const EDUCATION_LOGO_GAP = "clamp(12px, 2vw, 16px)";
+const EDUCATION_TEXT_INDENT = `calc(${EDUCATION_LOGO_W}px + ${EDUCATION_LOGO_GAP})`;
+
+function EducationItem({ entry }) {
   return (
-    <main style={{
-      padding: "var(--header-body-gap) var(--pad-x) var(--section-y)",
-      maxWidth: "760px"
+    <div className="about-education__item">
+      <div className="about-education__row" style={{
+        display: "flex",
+        alignItems: "center",
+        gap: EDUCATION_LOGO_GAP
+      }}>
+        {entry.logo &&
+        <div className="about-education__logo" style={{
+          flexShrink: 0,
+          width: `${EDUCATION_LOGO_W}px`,
+          height: `${EDUCATION_LOGO_W}px`,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: "6px",
+          borderRadius: "10px",
+          border: "1px solid var(--line-soft)",
+          background: "oklch(0.985 var(--tone-c) var(--tone-h))",
+          boxSizing: "border-box"
+        }}>
+          <img
+            src={entry.logo}
+            alt=""
+            aria-hidden="true"
+            loading="lazy"
+            style={{
+              display: "block",
+              maxWidth: "100%",
+              maxHeight: "100%",
+              width: "auto",
+              height: "auto",
+              objectFit: "contain"
+            }}
+          />
+        </div>
+        }
+        <h3 style={{
+          margin: 0,
+          minWidth: 0,
+          flex: 1,
+          fontFamily: "var(--font-display)",
+          fontWeight: 600,
+          fontSize: "clamp(0.95rem, 1.6vw, 1.1rem)",
+          letterSpacing: "-0.015em",
+          lineHeight: 1.35
+        }}>{entry.degree}</h3>
+      </div>
+      <Mono style={{
+        display: "block",
+        marginTop: "8px",
+        paddingLeft: entry.logo ? EDUCATION_TEXT_INDENT : 0,
+        color: "var(--ink-3)",
+        textTransform: "none",
+        letterSpacing: "0.02em",
+        lineHeight: 1.45,
+        whiteSpace: "normal"
+      }}>{entry.issued ? `${entry.school} · ${entry.issued}` : entry.school}</Mono>
+      {entry.courses?.length > 0 &&
+      <ul className="about-education__courses" style={{
+        margin: "14px 0 0",
+        padding: 0,
+        paddingLeft: entry.logo ? EDUCATION_TEXT_INDENT : 0,
+        listStyle: "none",
+        display: "grid",
+        gap: "6px"
+      }}>
+        {entry.courses.map((course) =>
+        <li key={course} style={{
+          fontSize: "0.88rem",
+          lineHeight: 1.45,
+          color: "var(--ink-2)"
+        }}>{course}</li>
+        )}
+      </ul>
+      }
+    </div>);
+}
+
+function CertFilterBtn({ active, label, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={active ? "about-cert-filter about-cert-filter--active" : "about-cert-filter"}
+      style={{
+        all: "unset",
+        cursor: "pointer",
+        fontFamily: "var(--font-meta)",
+        fontSize: "0.6rem",
+        letterSpacing: "var(--meta-tracking)",
+        textTransform: "var(--meta-transform)",
+        padding: "5px 9px",
+        borderRadius: "6px",
+        border: `1px solid ${active ? "var(--accent)" : "var(--line-soft)"}`,
+        background: active ? "oklch(0.97 var(--tone-c) var(--tone-h))" : "transparent",
+        color: active ? "var(--ink)" : "var(--ink-3)",
+        transition: "border-color .2s ease, color .2s ease, background .2s ease"
+      }}
+    >{label}</button>);
+}
+
+function CertificationsSection() {
+  const [certs, setCerts] = useState([]);
+  const [filter, setFilter] = useState("all");
+  const [loadError, setLoadError] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("certifications.json")
+      .then((res) => {
+        if (!res.ok) throw new Error("not found");
+        return res.json();
+      })
+      .then((data) => {
+        if (cancelled) return;
+        if (Array.isArray(data) && data.length) {
+          setCerts(data.map((c) => ({
+            courses: [],
+            category: c.category || inferCertCategory(c.degree),
+            ...c,
+            logo: certLogoForSchool(c.school, c.logo)
+          })));
+          setLoadError(false);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setLoadError(true);
+      });
+    return () => { cancelled = true; };
+  }, []);
+
+  const filterCounts = useMemo(() => {
+    const counts = { all: certs.length, data: 0, code: 0, ux: 0 };
+    for (const c of certs) {
+      if (c.category === "data") counts.data += 1;
+      if (c.category === "code") counts.code += 1;
+      if (c.category === "ux") counts.ux += 1;
+    }
+    return counts;
+  }, [certs]);
+
+  const filteredCerts = useMemo(() => {
+    if (filter === "all") return certs;
+    return certs.filter((c) => c.category === filter);
+  }, [certs, filter]);
+
+  return (
+    <div className="about-certifications" style={{
+      display: "flex",
+      flexDirection: "column",
+      minHeight: 0,
+      height: "100%"
     }}>
-      <SectionHead title="About" kicker="one paragraph" />
-      <p style={{ fontSize: "clamp(1.25rem, 2.4vw, 1.6rem)", lineHeight: 1.55, letterSpacing: "-0.01em", margin: 0 }}>
-        I&rsquo;m Franco, a fraud prevention analyst. Most days I&rsquo;m reading transaction
-        data, writing rules, and figuring out which signals actually mean something and which
-        ones are just noise. I like work that&rsquo;s quietly useful &mdash; the kind that
-        stops a bad charge or saves a real customer a headache without anyone noticing. Outside
-        of that I take photos, mostly on film, mostly of ordinary things. This site is where I
-        keep both.
+      <div className="about-certifications__head" style={{
+        display: "flex",
+        alignItems: "baseline",
+        justifyContent: "space-between",
+        gap: "12px",
+        marginBottom: "clamp(14px, 2.5vw, 18px)",
+        flexWrap: "wrap",
+        flexShrink: 0
+      }}>
+        <Mono style={{ color: "var(--ink-3)" }}>
+          Certifications{filteredCerts.length > 0 ?
+          ` (${filteredCerts.length}${filter !== "all" ? ` · ${CERT_FILTERS.find((f) => f.id === filter)?.label}` : ""})` :
+          ""}
+        </Mono>
+        <a
+          href={CERTIFICATIONS_LINKEDIN}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ textDecoration: "none" }}
+        >
+          <Mono style={{ color: "var(--ink-2)" }}>LinkedIn →</Mono>
+        </a>
+      </div>
+
+      {certs.length > 0 &&
+      <div className="about-certifications__filters" style={{
+        display: "flex",
+        flexWrap: "wrap",
+        gap: "6px",
+        marginBottom: "clamp(12px, 2vw, 16px)",
+        flexShrink: 0
+      }}>
+        {CERT_FILTERS.map((f) =>
+        <CertFilterBtn
+          key={f.id}
+          label={`${f.label} (${filterCounts[f.id] ?? 0})`}
+          active={filter === f.id}
+          onClick={() => setFilter(f.id)}
+        />
+        )}
+      </div>
+      }
+
+      {loadError && certs.length === 0 &&
+      <p style={{
+        margin: 0,
+        fontSize: "0.88rem",
+        lineHeight: 1.5,
+        color: "var(--ink-2)"
+      }}>
+        Could not load certifications.json. Use a local server or check the file path.
       </p>
+      }
+
+      {certs.length === 0 && !loadError &&
+      <p style={{
+        margin: 0,
+        fontSize: "0.88rem",
+        lineHeight: 1.5,
+        color: "var(--ink-2)"
+      }}>Loading certifications…</p>
+      }
+
+      {filteredCerts.length === 0 && certs.length > 0 &&
+      <p style={{
+        margin: 0,
+        fontSize: "0.88rem",
+        lineHeight: 1.5,
+        color: "var(--ink-2)"
+      }}>No certifications in this category.</p>
+      }
+
+      {filteredCerts.length > 0 &&
+      <div
+        className="about-certifications__scroll"
+        style={{
+          flex: 1,
+          minHeight: 0,
+          overflowY: "auto",
+          display: "grid",
+          gap: "clamp(16px, 2.5vw, 20px)",
+          paddingRight: "6px",
+          overscrollBehavior: "contain"
+        }}
+      >
+        {filteredCerts.map((entry) =>
+        <EducationItem key={entry.degree} entry={entry} />
+        )}
+      </div>
+      }
+    </div>);
+}
+
+function AboutView() {
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, []);
+
+  return (
+    <main className="about-page" style={{
+      boxSizing: "border-box",
+      height: "calc(100vh - var(--site-header-h))",
+      overflow: "hidden",
+      display: "flex",
+      flexDirection: "column",
+      width: "100%",
+      padding: "clamp(24px, 3.5vh, 40px) var(--content-pad-x) clamp(16px, 2.5vh, 28px)",
+      maxWidth: "var(--content-maxw)",
+      margin: "0 auto"
+    }}>
+      <SectionHead title="About" kicker="bio · education · certifications" />
+      <div className="about-view" style={{
+        flex: 1,
+        minHeight: 0,
+        display: "grid",
+        gridTemplateColumns: "minmax(0, 1.65fr) minmax(220px, 1fr) minmax(260px, 1fr)",
+        columnGap: "var(--about-col-gap)",
+        alignItems: "stretch"
+      }}>
+        <p className="about-view__bio" style={{
+          margin: 0,
+          fontSize: "clamp(1.25rem, 2.4vw, 1.6rem)",
+          lineHeight: 1.55,
+          letterSpacing: "-0.01em"
+        }}>
+          I&rsquo;m Franco, a fraud prevention analyst.
+          <br /><br />
+          Most days I&rsquo;m reading transaction data, writing rules, and figuring out which
+          signals actually mean something and which ones are just noise.
+          <br /><br />
+          I believe that anyone can learn anything if you can just sit down and put an effort
+          everyday.
+        </p>
+        <aside className="about-view__education" style={{
+          borderLeft: "1px solid var(--line-soft)",
+          paddingLeft: "clamp(20px, 3vw, 32px)",
+          display: "flex",
+          flexDirection: "column",
+          gap: "clamp(28px, 4vw, 36px)"
+        }}>
+          <div>
+            <Mono style={{
+              display: "block",
+              marginBottom: "clamp(18px, 3vw, 24px)",
+              color: "var(--ink-3)"
+            }}>Education</Mono>
+            <div className="about-education" style={{
+              display: "grid",
+              gap: "clamp(24px, 4vw, 32px)"
+            }}>
+              {EDUCATION.map((entry) =>
+              <EducationItem key={entry.degree} entry={entry} />
+              )}
+            </div>
+          </div>
+          <div className="about-view__professional-certs" style={{
+            paddingTop: "clamp(24px, 4vw, 32px)",
+            borderTop: "1px solid var(--line-soft)"
+          }}>
+            <Mono style={{
+              display: "block",
+              marginBottom: "clamp(18px, 3vw, 24px)",
+              color: "var(--ink-3)"
+            }}>Professional certifications</Mono>
+            <div className="about-education" style={{
+              display: "grid",
+              gap: "clamp(24px, 4vw, 32px)"
+            }}>
+              {PROFESSIONAL_CERTIFICATIONS.map((entry) =>
+              <EducationItem key={entry.degree} entry={entry} />
+              )}
+            </div>
+          </div>
+        </aside>
+        <aside className="about-view__certs" style={{
+          minHeight: 0,
+          display: "flex",
+          flexDirection: "column",
+          borderLeft: "1px solid var(--line-soft)",
+          paddingLeft: "clamp(20px, 3vw, 32px)"
+        }}>
+          <CertificationsSection />
+        </aside>
+      </div>
     </main>);
 
 }
@@ -2161,7 +2592,7 @@ function App() {
         {view === "About" && <AboutView />}
       </div>
 
-      {view !== "Photography" && <Footer />}
+      {view !== "Photography" && view !== "About" && <Footer />}
 
       {view === "Photography" &&
       <PhotoModeToggle photoPickMode={photoPickMode} setPhotoPickMode={setPhotoPickMode} />
@@ -2221,6 +2652,10 @@ styleEl.textContent = `
   :root {
     --project-block-w: 560px;
     --project-media-h: clamp(220px, 28vw, 390px);
+    --site-header-h: 56px;
+    --content-pad-x: clamp(20px, 3vw, 48px);
+    --content-maxw: min(100%, 1520px);
+    --about-col-gap: clamp(20px, 3vw, 48px);
     --photo-header-h: 60px;
     --photo-nav-h: 48px;
     --photo-chrome: calc(var(--photo-header-h) + var(--photo-nav-h));
@@ -2287,6 +2722,38 @@ styleEl.textContent = `
     }
     .projects-featured__aside { position: static !important; }
     .projects-featured__blurb { max-width: none !important; }
+    .about-page {
+      height: auto !important;
+      min-height: calc(100vh - var(--site-header-h));
+      overflow: visible !important;
+    }
+    .about-view {
+      grid-template-columns: 1fr !important;
+      row-gap: clamp(28px, 5vw, 36px) !important;
+    }
+    .about-view__education,
+    .about-view__certs {
+      border-left: none !important;
+      padding-left: 0 !important;
+      padding-top: clamp(8px, 2vw, 12px);
+      border-top: 1px solid var(--line-soft);
+    }
+    .about-view__certs {
+      min-height: min(52vh, 420px) !important;
+    }
+  }
+  .about-page .about-certifications__head {
+    flex-shrink: 0;
+  }
+  .about-certifications__scroll {
+    scrollbar-width: thin;
+    scrollbar-color: var(--line) transparent;
+    -webkit-overflow-scrolling: touch;
+  }
+  .about-certifications__scroll::-webkit-scrollbar { width: 6px; }
+  .about-certifications__scroll::-webkit-scrollbar-thumb {
+    background: var(--line);
+    border-radius: 3px;
   }
   .projects-featured__blurb {
     animation: featured-blurb-in .35s ease;

@@ -1,0 +1,336 @@
+[
+  {
+    "degree": "Introduction to Relational Databases in SQL",
+    "school": "DataCamp",
+    "issued": "",
+    "featured": false,
+    "category": "data",
+    "logo": "assets/about me/datacamp logo.png"
+  },
+  {
+    "degree": "Joining Data in SQL & Subqueries",
+    "school": "DataCamp",
+    "issued": "",
+    "featured": false,
+    "category": "data",
+    "logo": "assets/about me/datacamp logo.png"
+  },
+  {
+    "degree": "SQL Intermediate",
+    "school": "DataCamp",
+    "issued": "",
+    "featured": false,
+    "category": "data",
+    "logo": "assets/about me/datacamp logo.png"
+  },
+  {
+    "degree": "Introduction to SQL",
+    "school": "DataCamp",
+    "issued": "",
+    "featured": false,
+    "category": "data",
+    "logo": "assets/about me/datacamp logo.png"
+  },
+  {
+    "degree": "Understanding Data Engineering",
+    "school": "DataCamp",
+    "issued": "",
+    "featured": false,
+    "category": "data",
+    "logo": "assets/about me/datacamp logo.png"
+  },
+  {
+    "degree": "Foundations of Business Intelligence",
+    "school": "Microsoft",
+    "issued": "",
+    "featured": false,
+    "category": "data",
+    "logo": "assets/about me/microsoft_logo_icon_181372.png"
+  },
+  {
+    "degree": "Data Modeling in Power BI",
+    "school": "Microsoft",
+    "issued": "",
+    "featured": false,
+    "category": "data",
+    "logo": "assets/about me/microsoft_logo_icon_181372.png"
+  },
+  {
+    "degree": "Power BI Data Analyst Associate (PL-300)",
+    "school": "Microsoft",
+    "issued": "",
+    "featured": true,
+    "logo": "assets/about me/microsoft_logo_icon_181372.png",
+    "category": "data"
+  },
+  {
+    "degree": "PL-300 Preparation Course",
+    "school": "Microsoft",
+    "issued": "",
+    "featured": false,
+    "category": "data",
+    "logo": "assets/about me/microsoft_logo_icon_181372.png"
+  },
+  {
+    "degree": "Mobile UI Design",
+    "school": "Coursera",
+    "issued": "",
+    "featured": false,
+    "category": "ux",
+    "logo": "assets/about me/coursera logo.webp"
+  },
+  {
+    "degree": "Python Intermediate",
+    "school": "DataCamp",
+    "issued": "",
+    "featured": false,
+    "category": "code",
+    "logo": "assets/about me/datacamp logo.png"
+  },
+  {
+    "degree": "Visual Design: The Ultimate Guide",
+    "school": "Coursera",
+    "issued": "",
+    "featured": false,
+    "category": "ux",
+    "logo": "assets/about me/coursera logo.webp"
+  },
+  {
+    "degree": "Web Development",
+    "school": "DataCamp",
+    "issued": "",
+    "featured": false,
+    "category": "code",
+    "logo": "assets/about me/datacamp logo.png"
+  },
+  {
+    "degree": "UX Design for Augmented Reality",
+    "school": "Coursera",
+    "issued": "",
+    "featured": false,
+    "category": "ux",
+    "logo": "assets/about me/coursera logo.webp"
+  },
+  {
+    "degree": "Coding Foundations",
+    "school": "DataCamp",
+    "issued": "",
+    "featured": false,
+    "category": "code",
+    "logo": "assets/about me/datacamp logo.png"
+  },
+  {
+    "degree": "Data-Driven Design: Metrics That Drive Real Results",
+    "school": "Coursera",
+    "issued": "",
+    "featured": false,
+    "category": "ux",
+    "logo": "assets/about me/coursera logo.webp"
+  },
+  {
+    "degree": "Diseño de interfaz (UI) avanzado",
+    "school": "Coursera",
+    "issued": "",
+    "featured": false,
+    "category": "ux",
+    "logo": "assets/about me/coursera logo.webp"
+  },
+  {
+    "degree": "Experiencia de usuario (UX) avanzado",
+    "school": "Coursera",
+    "issued": "",
+    "featured": false,
+    "category": "ux",
+    "logo": "assets/about me/coursera logo.webp"
+  },
+  {
+    "degree": "Certificate of membership",
+    "school": "Coursera",
+    "issued": "",
+    "featured": false,
+    "category": null,
+    "logo": "assets/about me/coursera logo.webp"
+  },
+  {
+    "degree": "HTML and CSS in depth",
+    "school": "Meta",
+    "issued": "",
+    "featured": true,
+    "category": "code",
+    "logo": "assets/about me/meta logo.webp"
+  },
+  {
+    "degree": "Taller de liderazgo ",
+    "school": "Coursera",
+    "issued": "",
+    "featured": false,
+    "category": null,
+    "logo": "assets/about me/coursera logo.webp"
+  },
+  {
+    "degree": "Introduction to Python",
+    "school": "DataCamp",
+    "issued": "",
+    "featured": false,
+    "category": "code",
+    "logo": "assets/about me/datacamp logo.png"
+  },
+  {
+    "degree": "Google Data Analytics Specialization",
+    "school": "Google",
+    "issued": "",
+    "featured": true,
+    "category": "data",
+    "logo": "assets/about me/Google.png"
+  },
+  {
+    "degree": "Google Data Analytics Capstone: Complete a Case Study",
+    "school": "Google",
+    "issued": "",
+    "featured": false,
+    "category": "data",
+    "logo": "assets/about me/Google.png"
+  },
+  {
+    "degree": "Data Analysis with R Programming",
+    "school": "Coursera",
+    "issued": "",
+    "featured": false,
+    "category": "data",
+    "logo": "assets/about me/coursera logo.webp"
+  },
+  {
+    "degree": "Share Data Through the Art of Visualization",
+    "school": "Coursera",
+    "issued": "",
+    "featured": false,
+    "category": "data",
+    "logo": "assets/about me/coursera logo.webp"
+  },
+  {
+    "degree": "Analyze Data to Answer Questions",
+    "school": "Coursera",
+    "issued": "",
+    "featured": false,
+    "category": "data",
+    "logo": "assets/about me/coursera logo.webp"
+  },
+  {
+    "degree": "Process Data from Dirty to Clean",
+    "school": "Coursera",
+    "issued": "",
+    "featured": false,
+    "category": "data",
+    "logo": "assets/about me/coursera logo.webp"
+  },
+  {
+    "degree": "Google AI Essentials",
+    "school": "Google",
+    "issued": "",
+    "featured": true,
+    "category": "data",
+    "logo": "assets/about me/Google.png"
+  },
+  {
+    "degree": "Generative AI with Large Language Models",
+    "school": "DeepLearning.AI",
+    "issued": "",
+    "featured": true,
+    "category": "data"
+  },
+  {
+    "degree": "Prepare Data for Exploration",
+    "school": "Coursera",
+    "issued": "",
+    "featured": false,
+    "category": "data",
+    "logo": "assets/about me/coursera logo.webp"
+  },
+  {
+    "degree": "Ask Questions to Make Data-Driven Decisions",
+    "school": "Google",
+    "issued": "",
+    "featured": false,
+    "category": "data",
+    "logo": "assets/about me/Google.png"
+  },
+  {
+    "degree": "Foundations: Data, Data, Everywhere",
+    "school": "Google",
+    "issued": "",
+    "featured": false,
+    "category": "data",
+    "logo": "assets/about me/Google.png"
+  },
+  {
+    "degree": "English Course C1",
+    "school": "EF Education First",
+    "issued": "",
+    "featured": false,
+    "category": null
+  },
+  {
+    "degree": "Design a User Experience for Social Good & Prepare for Jobs",
+    "school": "Coursera",
+    "issued": "",
+    "featured": false,
+    "category": "ux",
+    "logo": "assets/about me/coursera logo.webp"
+  },
+  {
+    "degree": "Create High-Fidelity Designs and Prototypes in Figma",
+    "school": "Coursera",
+    "issued": "",
+    "featured": false,
+    "category": "ux",
+    "logo": "assets/about me/coursera logo.webp"
+  },
+  {
+    "degree": "Build Wireframes and Low-Fidelity Prototypes",
+    "school": "Coursera",
+    "issued": "",
+    "featured": false,
+    "category": "ux",
+    "logo": "assets/about me/coursera logo.webp"
+  },
+  {
+    "degree": "Start the UX Design Process: Empathize, Define, and Ideate",
+    "school": "Coursera",
+    "issued": "",
+    "featured": false,
+    "category": "ux",
+    "logo": "assets/about me/coursera logo.webp"
+  },
+  {
+    "degree": "Conduct UX Research and Test Early Concepts",
+    "school": "Coursera",
+    "issued": "",
+    "featured": false,
+    "category": "ux",
+    "logo": "assets/about me/coursera logo.webp"
+  },
+  {
+    "degree": "Build Dynamic User Interfaces (UI) for Websites",
+    "school": "Coursera",
+    "issued": "",
+    "featured": false,
+    "category": "ux",
+    "logo": "assets/about me/coursera logo.webp"
+  },
+  {
+    "degree": "Foundations of User Experience (UX) Design",
+    "school": "Google",
+    "issued": "",
+    "featured": false,
+    "category": "ux",
+    "logo": "assets/about me/Google.png"
+  },
+  {
+    "degree": "Google UX Design Specialization",
+    "school": "Google",
+    "issued": "",
+    "featured": true,
+    "category": "ux",
+    "logo": "assets/about me/Google.png"
+  }
+]
