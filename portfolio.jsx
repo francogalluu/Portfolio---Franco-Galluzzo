@@ -1520,7 +1520,7 @@ function clampPhotoScroll(el, value) {
   return Math.max(0, Math.min(max, value));
 }
 
-function PhotoEyeCursor({ enabled, scrollRef, dragActiveRef, lightboxOpen }) {
+function PhotoEyeCursor({ enabled, scrollRef, lightboxOpen }) {
   const nodeRef = useRef(null);
   const motionRef = useRef({
     x: 0, y: 0, tx: 0, ty: 0, opacity: 0, targetOpacity: 0, raf: null, initialized: false
@@ -1535,7 +1535,7 @@ function PhotoEyeCursor({ enabled, scrollRef, dragActiveRef, lightboxOpen }) {
     if (!root || !enabled) return;
 
     const onMove = (e) => {
-      if (dragActiveRef.current || lightboxOpen) return;
+      if (lightboxOpen) return;
       const m = motionRef.current;
       m.tx = e.clientX;
       m.ty = e.clientY;
@@ -1557,7 +1557,7 @@ function PhotoEyeCursor({ enabled, scrollRef, dragActiveRef, lightboxOpen }) {
       root.removeEventListener("mousemove", onMove);
       root.removeEventListener("mouseleave", onLeave);
     };
-  }, [enabled, scrollRef, dragActiveRef, lightboxOpen]);
+  }, [enabled, scrollRef, lightboxOpen]);
 
   useEffect(() => {
     if (!enabled) {
@@ -1574,7 +1574,7 @@ function PhotoEyeCursor({ enabled, scrollRef, dragActiveRef, lightboxOpen }) {
     const tick = () => {
       const m = motionRef.current;
       const el = nodeRef.current;
-      const show = !dragActiveRef.current && !lightboxOpen && m.targetOpacity > 0.01;
+      const show = !lightboxOpen && m.targetOpacity > 0.01;
 
       if (show || m.opacity > 0.01) {
         m.x += (m.tx - m.x) * posEase;
@@ -1595,7 +1595,7 @@ function PhotoEyeCursor({ enabled, scrollRef, dragActiveRef, lightboxOpen }) {
       if (motionRef.current.raf) cancelAnimationFrame(motionRef.current.raf);
       motionRef.current.raf = null;
     };
-  }, [enabled, dragActiveRef, lightboxOpen]);
+  }, [enabled, lightboxOpen]);
 
   if (!enabled) return null;
 
@@ -1611,10 +1611,7 @@ function PhotoEyeCursor({ enabled, scrollRef, dragActiveRef, lightboxOpen }) {
 
 function PhotographyView({ photoGroups, photoEdits, selectedPhotoSrc, photoPickMode, onSelectPhoto, photoGalleryStyle }) {
   const scrollRef = useRef(null);
-  const dragRef   = useRef({ active: false, startX: 0, scrollLeft: 0, lastX: 0, lastT: 0, velocity: 0 });
-  const dragActiveRef = useRef(false);
-  const smoothRef = useRef({ target: null, raf: null, momentumRaf: null });
-  const didDragRef = useRef(false);
+  const smoothRef = useRef({ target: null, raf: null });
   const showSmoothEye = !photoPickMode;
   const [lightboxSrc, setLightboxSrc] = useState(null);
   const openLightbox = useCallback((src) => setLightboxSrc(src), []);
@@ -1627,9 +1624,7 @@ function PhotographyView({ photoGroups, photoEdits, selectedPhotoSrc, photoPickM
   const stopSmooth = useCallback(() => {
     const s = smoothRef.current;
     if (s.raf) cancelAnimationFrame(s.raf);
-    if (s.momentumRaf) cancelAnimationFrame(s.momentumRaf);
     s.raf = null;
-    s.momentumRaf = null;
   }, []);
 
   const runSmoothScroll = useCallback(() => {
@@ -1660,10 +1655,6 @@ function PhotographyView({ photoGroups, photoEdits, selectedPhotoSrc, photoPickM
     const el = scrollRef.current;
     if (!el) return;
     const s = smoothRef.current;
-    if (s.momentumRaf) {
-      cancelAnimationFrame(s.momentumRaf);
-      s.momentumRaf = null;
-    }
     const base = s.target ?? el.scrollLeft;
     s.target = clampPhotoScroll(el, base + next);
     if (reducedMotion.current) {
@@ -1672,33 +1663,6 @@ function PhotographyView({ photoGroups, photoEdits, selectedPhotoSrc, photoPickM
     }
     runSmoothScroll();
   }, [runSmoothScroll]);
-
-  const runMomentum = useCallback((velocity) => {
-    const el = scrollRef.current;
-    if (!el || reducedMotion.current || Math.abs(velocity) < 0.4) return;
-    const s = smoothRef.current;
-    stopSmooth();
-    let v = velocity;
-    const friction = 0.92;
-
-    const step = () => {
-      if (!scrollRef.current || Math.abs(v) < 0.25) {
-        s.momentumRaf = null;
-        return;
-      }
-      const next = clampPhotoScroll(el, el.scrollLeft - v);
-      if (next === el.scrollLeft) {
-        s.momentumRaf = null;
-        s.target = el.scrollLeft;
-        return;
-      }
-      el.scrollLeft = next;
-      s.target = next;
-      v *= friction;
-      s.momentumRaf = requestAnimationFrame(step);
-    };
-    s.momentumRaf = requestAnimationFrame(step);
-  }, [stopSmooth]);
 
   /* lock body scroll while this view is mounted */
   useEffect(() => {
@@ -1724,57 +1688,6 @@ function PhotographyView({ photoGroups, photoEdits, selectedPhotoSrc, photoPickM
     return () => el.removeEventListener("wheel", onWheel);
   }, [setScrollTarget]);
 
-  /* click-drag to scroll */
-  const onMouseDown = useCallback((e) => {
-    if (photoPickMode && e.target.closest(".photo-frame")) return;
-    const el = scrollRef.current;
-    if (!el) return;
-    stopSmooth();
-    smoothRef.current.target = el.scrollLeft;
-    didDragRef.current = false;
-    dragActiveRef.current = true;
-    const now = performance.now();
-    dragRef.current = {
-      active: true,
-      startX: e.pageX,
-      scrollLeft: el.scrollLeft,
-      lastX: e.pageX,
-      lastT: now,
-      velocity: 0,
-    };
-    el.style.cursor = "grabbing";
-  }, [photoPickMode, stopSmooth]);
-
-  const onMouseUp = useCallback(() => {
-    const drag = dragRef.current;
-    if (!drag.active) return;
-    drag.active = false;
-    dragActiveRef.current = false;
-    if (scrollRef.current) {
-      scrollRef.current.style.cursor = "grab";
-      smoothRef.current.target = scrollRef.current.scrollLeft;
-      runMomentum(drag.velocity);
-    }
-  }, [runMomentum]);
-
-  const onMouseMove = useCallback((e) => {
-    if (!dragRef.current.active) return;
-    e.preventDefault();
-    const el = scrollRef.current;
-    const drag = dragRef.current;
-    if (Math.abs(e.pageX - drag.startX) > 5) didDragRef.current = true;
-    const now = performance.now();
-    const dt = Math.max(now - drag.lastT, 1);
-    const walk = (e.pageX - drag.startX) * 1.4;
-    const next = clampPhotoScroll(el, drag.scrollLeft - walk);
-    const instant = next - el.scrollLeft;
-    if (dt < 48) drag.velocity = drag.velocity * 0.55 + (instant / dt) * 16;
-    drag.lastX = e.pageX;
-    drag.lastT = now;
-    el.scrollLeft = next;
-    smoothRef.current.target = next;
-  }, []);
-
   return (
     <div
       className={`photography-view${showSmoothEye ? " photography-view--smooth-eye" : ""}`}
@@ -1789,7 +1702,6 @@ function PhotographyView({ photoGroups, photoEdits, selectedPhotoSrc, photoPickM
       <PhotoEyeCursor
         enabled={showSmoothEye}
         scrollRef={scrollRef}
-        dragActiveRef={dragActiveRef}
         lightboxOpen={!!lightboxSrc}
       />
 
@@ -1797,10 +1709,6 @@ function PhotographyView({ photoGroups, photoEdits, selectedPhotoSrc, photoPickM
       <div
         ref={scrollRef}
         className="photo-hscroll"
-        onMouseDown={onMouseDown}
-        onMouseUp={onMouseUp}
-        onMouseLeave={onMouseUp}
-        onMouseMove={onMouseMove}
         style={{
           flex: 1,
           overflowX: "auto",
@@ -1814,8 +1722,6 @@ function PhotographyView({ photoGroups, photoEdits, selectedPhotoSrc, photoPickM
           paddingRight: "clamp(24px, 5vw, 80px)",
           scrollbarWidth: "none",
           msOverflowStyle: "none",
-          cursor: "grab",
-          userSelect: "none",
         }}
       >
         <figure
@@ -1878,7 +1784,7 @@ function PhotographyView({ photoGroups, photoEdits, selectedPhotoSrc, photoPickM
                         onSelectPhoto?.(photo.src);
                       } : (e) => {
                         e.stopPropagation();
-                        if (!didDragRef.current) openLightbox(photo.src);
+                        openLightbox(photo.src);
                       }}
                       style={{
                         padding: 0,
