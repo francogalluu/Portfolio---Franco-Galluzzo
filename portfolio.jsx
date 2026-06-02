@@ -159,8 +159,8 @@ const EDUCATION = [
   }
 ];
 
-const CERTIFICATIONS_LINKEDIN =
-  "https://www.linkedin.com/in/franco-galluzzo/details/certifications/";
+const LINKEDIN_PROFILE = "https://www.linkedin.com/in/franco-galluzzo/";
+const CERTIFICATIONS_LINKEDIN = `${LINKEDIN_PROFILE}details/certifications/`;
 
 const CERT_FILTERS = [
   { id: "all", label: "All" },
@@ -2130,84 +2130,35 @@ function PhotoEditorPanel({
 /* ============================================================
    ABOUT
    ============================================================ */
-const EDUCATION_LOGO_W = 44;
-const EDUCATION_LOGO_GAP = "clamp(12px, 2vw, 16px)";
-const EDUCATION_TEXT_INDENT = `calc(${EDUCATION_LOGO_W}px + ${EDUCATION_LOGO_GAP})`;
-
-function EducationItem({ entry }) {
+function EducationItem({ entry, indent }) {
   return (
     <div className="about-education__item">
-      <div className="about-education__row" style={{
-        display: "flex",
-        alignItems: "center",
-        gap: EDUCATION_LOGO_GAP
-      }}>
+      <div className="about-education__row">
         {entry.logo &&
-        <div className="about-education__logo" style={{
-          flexShrink: 0,
-          width: `${EDUCATION_LOGO_W}px`,
-          height: `${EDUCATION_LOGO_W}px`,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          padding: "6px",
-          borderRadius: "10px",
-          border: "1px solid var(--line-soft)",
-          background: "oklch(0.985 var(--tone-c) var(--tone-h))",
-          boxSizing: "border-box"
-        }}>
+        <div className="about-education__logo">
           <img
             src={entry.logo}
             alt=""
             aria-hidden="true"
             loading="lazy"
-            style={{
-              display: "block",
-              maxWidth: "100%",
-              maxHeight: "100%",
-              width: "auto",
-              height: "auto",
-              objectFit: "contain"
-            }}
           />
         </div>
         }
-        <h3 style={{
-          margin: 0,
-          minWidth: 0,
-          flex: 1,
-          fontFamily: "var(--font-display)",
-          fontWeight: 600,
-          fontSize: "clamp(0.95rem, 1.6vw, 1.1rem)",
-          letterSpacing: "-0.015em",
-          lineHeight: 1.35
-        }}>{entry.degree}</h3>
+        <h3 className="about-education__degree">{entry.degree}</h3>
       </div>
-      <Mono style={{
-        display: "block",
-        marginTop: "8px",
-        paddingLeft: entry.logo ? EDUCATION_TEXT_INDENT : 0,
-        color: "var(--ink-3)",
-        textTransform: "none",
-        letterSpacing: "0.02em",
-        lineHeight: 1.45,
-        whiteSpace: "normal"
-      }}>{entry.issued ? `${entry.school} · ${entry.issued}` : entry.school}</Mono>
+      <Mono
+        className="about-education__school"
+        style={indent ? { paddingLeft: indent } : undefined}
+      >
+        {entry.issued ? `${entry.school} · ${entry.issued}` : entry.school}
+      </Mono>
       {entry.courses?.length > 0 &&
-      <ul className="about-education__courses" style={{
-        margin: "14px 0 0",
-        padding: 0,
-        paddingLeft: entry.logo ? EDUCATION_TEXT_INDENT : 0,
-        listStyle: "none",
-        display: "grid",
-        gap: "6px"
-      }}>
+      <ul
+        className="about-education__courses"
+        style={indent ? { paddingLeft: indent } : undefined}
+      >
         {entry.courses.map((course) =>
-        <li key={course} style={{
-          fontSize: "0.88rem",
-          lineHeight: 1.45,
-          color: "var(--ink-2)"
-        }}>{course}</li>
+        <li key={course}>{course}</li>
         )}
       </ul>
       }
@@ -2382,7 +2333,76 @@ function CertificationsSection() {
     </div>);
 }
 
+function useFitColumnText(contentRef, containerRef, { minPx = 11, maxPxCap = 140, maxPxRatio = 0.52, minMaxPx = 36 } = {}) {
+  useEffect(() => {
+    const content = contentRef.current;
+    const box = containerRef.current;
+    if (!content || !box) return;
+
+    const fit = () => {
+      const limit = box.clientHeight;
+      if (limit < 8) return;
+
+      const maxPx = Math.min(maxPxCap, Math.max(minMaxPx, limit * maxPxRatio));
+
+      let lo = minPx;
+      let hi = Math.ceil(maxPx);
+      let best = minPx;
+
+      while (lo <= hi) {
+        const mid = Math.floor((lo + hi) / 2);
+        content.style.fontSize = `${mid}px`;
+        if (content.scrollHeight <= limit) {
+          best = mid;
+          lo = mid + 1;
+        } else {
+          hi = mid - 1;
+        }
+      }
+
+      let size = best;
+      content.style.fontSize = `${size}px`;
+      while (size + 0.5 <= maxPx) {
+        content.style.fontSize = `${size + 0.5}px`;
+        if (content.scrollHeight <= limit) size += 0.5;
+        else {
+          content.style.fontSize = `${size}px`;
+          break;
+        }
+      }
+    };
+
+    const scheduleFit = () => requestAnimationFrame(fit);
+    const ro = new ResizeObserver(scheduleFit);
+    ro.observe(box);
+    window.addEventListener("resize", scheduleFit);
+    scheduleFit();
+    let cancelled = false;
+    document.fonts?.ready?.then(() => {
+      if (!cancelled) scheduleFit();
+    });
+    return () => {
+      cancelled = true;
+      ro.disconnect();
+      window.removeEventListener("resize", scheduleFit);
+      content.style.fontSize = "";
+    };
+  }, [contentRef, containerRef, minPx, maxPxCap, maxPxRatio, minMaxPx]);
+}
+
 function AboutView() {
+  const bioRef = useRef(null);
+  const bioWrapRef = useRef(null);
+  const educationBoxRef = useRef(null);
+  const educationContentRef = useRef(null);
+  useFitColumnText(bioRef, bioWrapRef);
+  useFitColumnText(educationContentRef, educationBoxRef, {
+    minPx: 7,
+    maxPxCap: 20,
+    maxPxRatio: 0.125,
+    minMaxPx: 10
+  });
+
   useEffect(() => {
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -2399,11 +2419,10 @@ function AboutView() {
       display: "flex",
       flexDirection: "column",
       width: "100%",
-      padding: "clamp(24px, 3.5vh, 40px) var(--content-pad-x) clamp(16px, 2.5vh, 28px)",
+      padding: "clamp(12px, 1.8vh, 20px) var(--content-pad-x) clamp(16px, 2.5vh, 28px)",
       maxWidth: "var(--content-maxw)",
       margin: "0 auto"
     }}>
-      <SectionHead title="About" kicker="bio · education · certifications" />
       <div className="about-view" style={{
         flex: 1,
         minHeight: 0,
@@ -2412,58 +2431,50 @@ function AboutView() {
         columnGap: "var(--about-col-gap)",
         alignItems: "stretch"
       }}>
-        <p className="about-view__bio" style={{
-          margin: 0,
-          fontSize: "clamp(1.25rem, 2.4vw, 1.6rem)",
-          lineHeight: 1.55,
-          letterSpacing: "-0.01em"
-        }}>
-          I&rsquo;m Franco, a fraud prevention analyst.
-          <br /><br />
-          Most days I&rsquo;m reading transaction data, writing rules, and figuring out which
-          signals actually mean something and which ones are just noise.
-          <br /><br />
-          I believe that anyone can learn anything if you can just sit down and put an effort
-          everyday.
-        </p>
+        <div className="about-view__bio-col">
+          <h2 className="about-page__title">About</h2>
+          <div ref={bioWrapRef} className="about-view__bio-wrap">
+          <p ref={bioRef} className="about-view__bio">
+            I&rsquo;m Franco, a fraud prevention analyst.
+            <br /><br />
+            Most days I&rsquo;m reading transaction data, writing rules, and figuring out which
+            signals actually mean something and which ones are just noise.
+            <br /><br />
+            I believe that anyone can learn anything if you can just sit down and put an effort
+            everyday.
+          </p>
+          </div>
+        </div>
         <aside className="about-view__education" style={{
           borderLeft: "1px solid var(--line-soft)",
-          paddingLeft: "clamp(20px, 3vw, 32px)",
-          display: "flex",
-          flexDirection: "column",
-          gap: "clamp(28px, 4vw, 36px)"
+          paddingLeft: "clamp(20px, 3vw, 32px)"
         }}>
-          <div>
-            <Mono style={{
-              display: "block",
-              marginBottom: "clamp(18px, 3vw, 24px)",
-              color: "var(--ink-3)"
-            }}>Education</Mono>
-            <div className="about-education" style={{
-              display: "grid",
-              gap: "clamp(24px, 4vw, 32px)"
-            }}>
-              {EDUCATION.map((entry) =>
-              <EducationItem key={entry.degree} entry={entry} />
-              )}
-            </div>
-          </div>
-          <div className="about-view__professional-certs" style={{
-            paddingTop: "clamp(24px, 4vw, 32px)",
-            borderTop: "1px solid var(--line-soft)"
-          }}>
-            <Mono style={{
-              display: "block",
-              marginBottom: "clamp(18px, 3vw, 24px)",
-              color: "var(--ink-3)"
-            }}>Professional certifications</Mono>
-            <div className="about-education" style={{
-              display: "grid",
-              gap: "clamp(24px, 4vw, 32px)"
-            }}>
-              {PROFESSIONAL_CERTIFICATIONS.map((entry) =>
-              <EducationItem key={entry.degree} entry={entry} />
-              )}
+          <div ref={educationBoxRef} className="about-view__education-box">
+            <div ref={educationContentRef} className="about-view__education-fit">
+              <section className="about-view__education-block">
+                <Mono className="about-education__section-label">Education</Mono>
+                <div className="about-education">
+                  {EDUCATION.map((entry) =>
+                  <EducationItem
+                    key={entry.degree}
+                    entry={entry}
+                    indent={entry.logo ? "var(--edu-text-indent)" : undefined}
+                  />
+                  )}
+                </div>
+              </section>
+              <section className="about-view__professional-certs">
+                <Mono className="about-education__section-label">Professional certifications</Mono>
+                <div className="about-education">
+                  {PROFESSIONAL_CERTIFICATIONS.map((entry) =>
+                  <EducationItem
+                    key={entry.degree}
+                    entry={entry}
+                    indent={entry.logo ? "var(--edu-text-indent)" : undefined}
+                  />
+                  )}
+                </div>
+              </section>
             </div>
           </div>
         </aside>
@@ -2484,18 +2495,38 @@ function AboutView() {
 /* ============================================================
    FOOTER
    ============================================================ */
+function LinkedInIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.065 2.065 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+    </svg>
+  );
+}
+
 function Footer() {
   return (
     <footer style={{
       padding: "40px var(--pad-x)", borderTop: "1px solid var(--line)",
       display: "flex", flexWrap: "wrap", gap: "16px",
-      alignItems: "baseline", justifyContent: "space-between"
+      alignItems: "center", justifyContent: "space-between"
     }}>
       <Mono>Franco Galluzzo</Mono>
-      <div style={{ display: "flex", gap: "22px", flexWrap: "wrap" }}>
-        <a href="mailto:hello@francogalluzzo.com"><Mono style={{ color: "var(--ink-2)" }}>hello@francogalluzzo.com</Mono></a>
-        <Mono>Lisbon</Mono>
-        <Mono>&copy; 2026</Mono>
+      <div style={{ display: "flex", gap: "22px", flexWrap: "wrap", alignItems: "center" }}>
+        <a
+          href={LINKEDIN_PROFILE}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "8px",
+            textDecoration: "none",
+            color: "var(--ink-2)"
+          }}
+        >
+          <LinkedInIcon />
+          <Mono style={{ color: "inherit" }}>LinkedIn</Mono>
+        </a>
       </div>
     </footer>);
 
@@ -2723,23 +2754,197 @@ styleEl.textContent = `
     .projects-featured__aside { position: static !important; }
     .projects-featured__blurb { max-width: none !important; }
     .about-page {
-      height: auto !important;
-      min-height: calc(100vh - var(--site-header-h));
-      overflow: visible !important;
+      height: calc(100vh - var(--site-header-h)) !important;
+      overflow: hidden !important;
     }
     .about-view {
       grid-template-columns: 1fr !important;
-      row-gap: clamp(28px, 5vw, 36px) !important;
+      grid-template-rows: minmax(0, 34vh) minmax(0, 26vh) minmax(0, 1fr) !important;
+      row-gap: clamp(16px, 2.5vh, 24px) !important;
     }
     .about-view__education,
     .about-view__certs {
       border-left: none !important;
       padding-left: 0 !important;
-      padding-top: clamp(8px, 2vw, 12px);
+      padding-top: clamp(6px, 1vh, 10px) !important;
       border-top: 1px solid var(--line-soft);
     }
     .about-view__certs {
-      min-height: min(52vh, 420px) !important;
+      min-height: 0 !important;
+    }
+  }
+  .about-page__title {
+    margin: 0 0 clamp(8px, 1.2vh, 12px);
+    flex-shrink: 0;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(1.3rem, 2.4vw, 1.8rem);
+    letter-spacing: -0.01em;
+  }
+  .about-view__bio-wrap {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .about-view__education,
+  .about-view__certs {
+    padding-top: clamp(4px, 0.6vh, 8px);
+    min-height: 0;
+  }
+  .about-view > * {
+    min-height: 0;
+  }
+  .about-view__bio-col {
+    min-height: 0;
+    height: 100%;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+  }
+  .about-certifications {
+    min-height: 0;
+    height: 100%;
+  }
+  .about-view__bio {
+    margin: 0;
+    font-size: clamp(0.8rem, min(2.4vw, 3.6vh), 2.75rem);
+    line-height: 1.48;
+    letter-spacing: -0.01em;
+  }
+  .about-view__education {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .about-view__education-box {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .about-view__education-fit {
+    --edu-logo: 2.75em;
+    --edu-text-indent: calc(var(--edu-logo) + 0.75em);
+    font-size: 0.875rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.85em;
+  }
+  .about-view__education-block {
+    display: flex;
+    flex-direction: column;
+    gap: 1.15em;
+  }
+  .about-view__professional-certs {
+    padding-top: 1.35em;
+    border-top: 1px solid var(--line-soft);
+    display: flex;
+    flex-direction: column;
+    gap: 1.15em;
+  }
+  .about-education__section-label {
+    display: block;
+    color: var(--ink-3);
+  }
+  .about-view__education-fit .about-education {
+    display: grid;
+    gap: 1.35em;
+  }
+  .about-education__row {
+    display: flex;
+    align-items: center;
+    gap: clamp(12px, 2vw, 16px);
+  }
+  .about-education__logo {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px;
+    border-radius: 10px;
+    border: 1px solid var(--line-soft);
+    background: oklch(0.985 var(--tone-c) var(--tone-h));
+    box-sizing: border-box;
+  }
+  .about-education__logo img {
+    display: block;
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+  }
+  .about-view__education-fit .about-education__logo {
+    width: var(--edu-logo);
+    height: var(--edu-logo);
+  }
+  .about-certifications__scroll .about-education__logo {
+    width: 44px;
+    height: 44px;
+  }
+  .about-education__degree {
+    margin: 0;
+    min-width: 0;
+    flex: 1;
+    font-family: var(--font-display);
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    line-height: 1.35;
+  }
+  .about-view__education-fit .about-education__degree {
+    font-size: 1.05em;
+  }
+  .about-certifications__scroll .about-education__degree {
+    font-size: clamp(0.95rem, 1.6vw, 1.1rem);
+  }
+  .about-education__school {
+    display: block;
+    margin-top: 0.5em;
+    color: var(--ink-3);
+    text-transform: none;
+    letter-spacing: 0.02em;
+    line-height: 1.45;
+    white-space: normal;
+  }
+  .about-certifications__scroll .about-education__item:has(.about-education__logo) .about-education__school {
+    padding-left: calc(44px + clamp(12px, 2vw, 16px));
+  }
+  .about-education__courses {
+    margin: 0.85em 0 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: 0.4em;
+  }
+  .about-certifications__scroll .about-education__item:has(.about-education__logo) .about-education__courses {
+    padding-left: calc(44px + clamp(12px, 2vw, 16px));
+  }
+  .about-education__courses li {
+    line-height: 1.45;
+    color: var(--ink-2);
+  }
+  .about-view__education-fit .about-education__courses li {
+    font-size: 0.88em;
+  }
+  .about-certifications__scroll .about-education__courses li {
+    font-size: 0.88rem;
+  }
+  @media (max-height: 820px) {
+    .about-page {
+      padding-top: clamp(10px, 1.5vh, 16px) !important;
+      padding-bottom: clamp(12px, 2vh, 20px) !important;
+    }
+    .about-page__title {
+      margin-bottom: clamp(6px, 1vh, 10px) !important;
+    }
+    .about-view__bio {
+      line-height: 1.45;
+    }
+  }
+  @media (max-height: 680px) {
+    .about-view__bio {
+      line-height: 1.4;
     }
   }
   .about-page .about-certifications__head {
