@@ -2211,10 +2211,7 @@ function EducationItem({ entry, indent }) {
         }
         <h3 className="about-education__degree">{entry.degree}</h3>
       </div>
-      <Mono
-        className="about-education__school"
-        style={indent ? { paddingLeft: indent } : undefined}
-      >
+      <Mono className="about-education__school">
         {entry.issued ? `${entry.school} · ${entry.issued}` : entry.school}
       </Mono>
       {entry.courses?.length > 0 &&
@@ -2398,14 +2395,14 @@ function CertificationsSection() {
     </div>);
 }
 
-function useFitColumnText(contentRef, containerRef, { minPx = 11, maxPxCap = 140, maxPxRatio = 0.52, minMaxPx = 36 } = {}) {
+function useFitColumnText(contentRef, containerRef, { minPx = 11, maxPxCap = 140, maxPxRatio = 0.52, minMaxPx = 36, fillRatio = 1 } = {}) {
   useEffect(() => {
     const content = contentRef.current;
     const box = containerRef.current;
     if (!content || !box) return;
 
     const fit = () => {
-      const limit = box.clientHeight;
+      const limit = box.clientHeight * fillRatio;
       if (limit < 8) return;
 
       const maxPx = Math.min(maxPxCap, Math.max(minMaxPx, limit * maxPxRatio));
@@ -2452,7 +2449,7 @@ function useFitColumnText(contentRef, containerRef, { minPx = 11, maxPxCap = 140
       window.removeEventListener("resize", scheduleFit);
       content.style.fontSize = "";
     };
-  }, [contentRef, containerRef, minPx, maxPxCap, maxPxRatio, minMaxPx]);
+  }, [contentRef, containerRef, minPx, maxPxCap, maxPxRatio, minMaxPx, fillRatio]);
 }
 
 function AboutView() {
@@ -2460,7 +2457,12 @@ function AboutView() {
   const bioWrapRef = useRef(null);
   const educationBoxRef = useRef(null);
   const educationContentRef = useRef(null);
-  useFitColumnText(bioRef, bioWrapRef);
+  useFitColumnText(bioRef, bioWrapRef, {
+    fillRatio: 0.68,
+    maxPxCap: 88,
+    maxPxRatio: 0.36,
+    minMaxPx: 26,
+  });
   useFitColumnText(educationContentRef, educationBoxRef, {
     minPx: 7,
     maxPxCap: 20,
@@ -2500,13 +2502,11 @@ function AboutView() {
           <h2 className="about-page__title">About</h2>
           <div ref={bioWrapRef} className="about-view__bio-wrap">
           <p ref={bioRef} className="about-view__bio">
-            I&rsquo;m Franco, a fraud prevention analyst.
+            I&rsquo;m Franco, a Fraud Prevention Analyst.
             <br /><br />
-            Most days I&rsquo;m reading transaction data, writing rules, and figuring out which
-            signals actually mean something and which ones are just noise.
+            I have studied AI, digitalization and how modern businesses are built, but also appreciate the importance of experience design in everything I do.
             <br /><br />
-            I believe that anyone can learn anything if you can just sit down and put an effort
-            everyday.
+            I also believe that anyone can learn anything if you can just sit down and put an effort.
           </p>
           </div>
         </div>
@@ -2850,7 +2850,7 @@ styleEl.textContent = `
     }
   }
   .about-page__title {
-    margin: 0 0 clamp(8px, 1.2vh, 12px);
+    margin: 0;
     flex-shrink: 0;
     font-family: var(--font-display);
     font-weight: 600;
@@ -2861,6 +2861,7 @@ styleEl.textContent = `
     flex: 1;
     min-height: 0;
     overflow: hidden;
+    padding-top: clamp(28px, 5vh, 56px);
   }
   .about-view__education,
   .about-view__certs {
@@ -2884,7 +2885,7 @@ styleEl.textContent = `
   }
   .about-view__bio {
     margin: 0;
-    font-size: clamp(0.8rem, min(2.4vw, 3.6vh), 2.75rem);
+    font-size: clamp(0.75rem, min(2vw, 3vh), 2.25rem);
     line-height: 1.48;
     letter-spacing: -0.01em;
   }
@@ -2983,9 +2984,6 @@ styleEl.textContent = `
     line-height: 1.45;
     white-space: normal;
   }
-  .about-certifications__scroll .about-education__item:has(.about-education__logo) .about-education__school {
-    padding-left: calc(44px + clamp(12px, 2vw, 16px));
-  }
   .about-education__courses {
     margin: 0.85em 0 0;
     padding: 0;
@@ -3012,7 +3010,10 @@ styleEl.textContent = `
       padding-bottom: clamp(12px, 2vh, 20px) !important;
     }
     .about-page__title {
-      margin-bottom: clamp(6px, 1vh, 10px) !important;
+      margin: 0 !important;
+    }
+    .about-view__bio-wrap {
+      padding-top: clamp(16px, 3vh, 32px);
     }
     .about-view__bio {
       line-height: 1.45;
