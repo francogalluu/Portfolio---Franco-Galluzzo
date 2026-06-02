@@ -1299,9 +1299,41 @@ const PHOTO_EDITS = {
   "Images_camarita/DSC03769.JPG": { ar: 1.8 },
   "Images_camarita/DSC03383.JPG": { ar: 1.8 },
   "Images_camarita/DSC03571.JPG": { ar: 1.61, posX: 100, posY: 88 },
-  "Images_camarita/DSC03658.JPG": { ar: 1.6, posX: 0, posY: 0 },
+  "Images_camarita/DSC03658.JPG": { ar: 1.61, posX: 0, posY: 0 },
   "Images_camarita/DSC03883.JPG": { ar: 0.5, posY: 100 },
 };
+
+const PHOTO_GALLERY_STYLE_DEFAULTS = {
+  shadow: true,
+  shadowAmount: 65,
+  rounded: true,
+  cornerRadius: 6,
+};
+
+function photoGalleryStyleVars(style) {
+  const s = { ...PHOTO_GALLERY_STYLE_DEFAULTS, ...style };
+  const radius = s.rounded ? `${s.cornerRadius}px` : "0px";
+  let shadow = "none";
+  let shadowPad = "0px";
+  if (s.shadow && s.shadowAmount > 0) {
+    const t = s.shadowAmount / 100;
+    const y1 = 1 + 2 * t;
+    const blur1 = 3 + 5 * t;
+    const a1 = 0.06 + 0.1 * t;
+    const y2 = 3 + 8 * t;
+    const blur2 = 10 + 22 * t;
+    const a2 = 0.1 + 0.18 * t;
+    shadow =
+      `0 ${y1.toFixed(1)}px ${blur1.toFixed(1)}px rgba(0, 0, 0, ${a1.toFixed(3)}), ` +
+      `0 ${y2.toFixed(1)}px ${blur2.toFixed(1)}px rgba(0, 0, 0, ${a2.toFixed(3)})`;
+    shadowPad = `${Math.round(6 + 20 * t)}px`;
+  }
+  return {
+    "--photo-frame-radius": radius,
+    "--photo-frame-shadow": shadow,
+    "--photo-frame-shadow-pad": shadowPad,
+  };
+}
 
 function parseClampHeight(h) {
   const m = String(h).match(/clamp\((\d+)px,\s*([\d.]+)vh,\s*(\d+)px\)/);
@@ -1365,7 +1397,7 @@ function PhotoGalleryFrame({ photo, colLength, runtimeEdits }) {
     );
   }
   return (
-    <div style={photoFrameStyle(photo, colLength, null)}>
+    <div className="photo-frame__media" style={photoFrameStyle(photo, colLength, null)}>
       <img
         src={photoWebSrc(photo.src)}
         alt=""
@@ -1439,7 +1471,7 @@ function PhotoCropPreview({ photo, colLength, runtimeEdits }) {
   };
 
   return (
-    <div ref={wrapRef} style={frame}>
+    <div ref={wrapRef} className="photo-frame__media" style={frame}>
       <img
         src={photo.src}
         alt=""
@@ -1577,7 +1609,7 @@ function PhotoEyeCursor({ enabled, scrollRef, dragActiveRef, lightboxOpen }) {
   );
 }
 
-function PhotographyView({ photoGroups, photoEdits, selectedPhotoSrc, photoPickMode, onSelectPhoto }) {
+function PhotographyView({ photoGroups, photoEdits, selectedPhotoSrc, photoPickMode, onSelectPhoto, photoGalleryStyle }) {
   const scrollRef = useRef(null);
   const dragRef   = useRef({ active: false, startX: 0, scrollLeft: 0, lastX: 0, lastT: 0, velocity: 0 });
   const dragActiveRef = useRef(false);
@@ -1746,7 +1778,13 @@ function PhotographyView({ photoGroups, photoEdits, selectedPhotoSrc, photoPickM
   return (
     <div
       className={`photography-view${showSmoothEye ? " photography-view--smooth-eye" : ""}`}
-      style={{ height: "calc(100vh - var(--photo-header-h))", display: "flex", flexDirection: "column", overflow: "hidden" }}
+      style={{
+        ...photoGalleryStyleVars(photoGalleryStyle),
+        height: "calc(100vh - var(--photo-header-h))",
+        display: "flex",
+        flexDirection: "column",
+        overflow: "hidden",
+      }}
     >
       <PhotoEyeCursor
         enabled={showSmoothEye}
@@ -1770,7 +1808,10 @@ function PhotographyView({ photoGroups, photoEdits, selectedPhotoSrc, photoPickM
           display: "flex",
           alignItems: "stretch",
           gap: "clamp(24px, 3.5vw, 52px)",
-          padding: "0 clamp(24px, 5vw, 80px) 0 clamp(10px, 1.8vw, 20px)",
+          paddingTop: "var(--photo-strip-py)",
+          paddingBottom: "var(--photo-strip-py)",
+          paddingLeft: "clamp(10px, 1.8vw, 20px)",
+          paddingRight: "clamp(24px, 5vw, 80px)",
           scrollbarWidth: "none",
           msOverflowStyle: "none",
           cursor: "grab",
@@ -1949,6 +1990,8 @@ function PhotoEditorPanel({
   setPhotoPickMode,
   selectedPhotoSrc,
   setSelectedPhotoSrc,
+  photoGalleryStyle,
+  setPhotoGalleryStyle,
 }) {
   const [open, setOpen] = useState(true);
   const [swapTarget, setSwapTarget] = useState("");
@@ -1957,6 +2000,11 @@ function PhotoEditorPanel({
   const galleryIdx = src ? galleryImages.indexOf(src) : -1;
   const edits = photoEdits || {};
   const cur = photo ? effectivePhotoEdit(photo, edits[src]) : null;
+  const galleryStyle = { ...PHOTO_GALLERY_STYLE_DEFAULTS, ...photoGalleryStyle };
+
+  const patchGalleryStyle = (patch) => {
+    setPhotoGalleryStyle((prev) => ({ ...prev, ...patch }));
+  };
 
   const movePhoto = (delta) => {
     if (galleryIdx < 0) return;
@@ -2071,6 +2119,23 @@ function PhotoEditorPanel({
         </p>
         <TweakToggle label="Click photo to select" value={photoPickMode}
           onChange={setPhotoPickMode} />
+
+        <TweakSection label="All photos" />
+        <TweakToggle label="Shadow" value={galleryStyle.shadow}
+          onChange={(v) => patchGalleryStyle({ shadow: v })} />
+        {galleryStyle.shadow &&
+        <TweakSlider label="Shadow strength" value={galleryStyle.shadowAmount}
+          min={0} max={100} unit="%"
+          onChange={(v) => patchGalleryStyle({ shadowAmount: v })} />
+        }
+        <TweakToggle label="Rounded corners" value={galleryStyle.rounded}
+          onChange={(v) => patchGalleryStyle({ rounded: v })} />
+        {galleryStyle.rounded &&
+        <TweakSlider label="Corner radius" value={galleryStyle.cornerRadius}
+          min={0} max={24} unit="px"
+          onChange={(v) => patchGalleryStyle({ cornerRadius: v })} />
+        }
+
         <TweakSelect label="Photo" value={src}
           options={galleryImages.map((s, i) => ({
             value: s,
@@ -2543,6 +2608,7 @@ function App() {
   const [selectedPhotoSrc, setSelectedPhotoSrc] = useState(CAMARITA_IMAGES[0]);
   const [photoEdits, setPhotoEdits] = useState({});
   const [photoPickMode, setPhotoPickMode] = useState(false);
+  const [photoGalleryStyle, setPhotoGalleryStyle] = useState(PHOTO_GALLERY_STYLE_DEFAULTS);
 
   const photoGroups = useMemo(
     () => buildPhotoGroups(galleryImages),
@@ -2618,6 +2684,7 @@ function App() {
           selectedPhotoSrc={selectedPhotoSrc}
           photoPickMode={photoPickMode}
           onSelectPhoto={setSelectedPhotoSrc}
+          photoGalleryStyle={photoGalleryStyle}
         />
         }
         {view === "About" && <AboutView />}
@@ -2640,6 +2707,8 @@ function App() {
         setPhotoPickMode={setPhotoPickMode}
         selectedPhotoSrc={selectedPhotoSrc}
         setSelectedPhotoSrc={setSelectedPhotoSrc}
+        photoGalleryStyle={photoGalleryStyle}
+        setPhotoGalleryStyle={setPhotoGalleryStyle}
       />
       }
 
@@ -2689,8 +2758,15 @@ styleEl.textContent = `
     --about-col-gap: clamp(20px, 3vw, 48px);
     --photo-header-h: 60px;
     --photo-nav-h: 48px;
+    --photo-strip-base: clamp(14px, 2.2vh, 28px);
+    --photo-frame-shadow-pad: 0px;
+    --photo-strip-py: var(--photo-strip-base);
     --photo-chrome: calc(var(--photo-header-h) + var(--photo-nav-h));
-    --photo-view-h: calc(100vh - var(--photo-chrome));
+    --photo-view-h: calc(100vh - var(--photo-chrome) - 2 * var(--photo-strip-py));
+  }
+  .photography-view {
+    --photo-strip-py: max(var(--photo-strip-base), var(--photo-frame-shadow-pad, 0px));
+    --photo-view-h: calc(100vh - var(--photo-chrome) - 2 * var(--photo-strip-py));
   }
   .view-fade { animation: viewFade .42s cubic-bezier(.2,.7,.2,1); }
   @keyframes viewFade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
@@ -2980,7 +3056,16 @@ styleEl.textContent = `
   }
   .photo-nav-item { transition: color .2s ease; }
   .photo-nav-item:hover { color: var(--ink) !important; }
-  .photo-frame { display: block; border-radius: 2px; }
+  .photo-frame {
+    display: block;
+    overflow: visible;
+    border-radius: var(--photo-frame-radius, 6px);
+    box-shadow: var(--photo-frame-shadow, 0 2px 6px rgba(0, 0, 0, 0.1), 0 6px 20px rgba(0, 0, 0, 0.14));
+  }
+  .photo-frame__media {
+    border-radius: inherit;
+    overflow: hidden;
+  }
   .photography-view--smooth-eye .photo-frame { cursor: none; }
   .photography-view--smooth-eye .photo-frame img { cursor: none; }
   .photo-eye-cursor {
