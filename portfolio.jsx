@@ -612,7 +612,7 @@ function LandingHero({ setView }) {
               fontSize: "clamp(1.4rem, 2.4vw, 1.9rem)", lineHeight: 1.3, letterSpacing: "-0.01em",
               whiteSpace: "nowrap"
             }}>
-              Data Analytics &amp; <span style={{ color: "var(--accent)" }}>AI enthusiast.</span>
+              Data Analytics, UX &amp; <span style={{ color: "var(--accent)" }}>AI enthusiast.</span>
             </p>
 
             <p className="landing-top__tagline-body" style={{
