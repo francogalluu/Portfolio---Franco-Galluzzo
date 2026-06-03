@@ -70,6 +70,7 @@ const PROJECTS = [
   icon: "assets/fovere-icon.png",
   hero: "assets/Frame 14.png",
   hero2x: "assets/Frame 14.png",
+  detailHero: "assets/Fovere_Screenshots/Frame 11 (1).png",
   tagline: "Build & Break Habits",
   intro: "Fovere is the habit tracker for building routines you can sustain\u2014and for breaking ones you want to quit or limit. Log in seconds with swipe gestures, see your week and year in Calendar, and go deep in Analytics with trends, heatmaps, and insights. Free, with no ads, and your data stays on your device.",
   buildNote: "I made this app entirely on Cursor with Claude and Figma Make AI.",
@@ -709,6 +710,7 @@ function ProjectCardLayout({ project, as = "h3", showBlurb = true, onOpen }) {
   const [mediaHover, setMediaHover] = useState(false);
   const interactive = as !== "h1";
   const overlay = interactive;
+  const detailBanner = as === "h1" && project.detailHero;
 
   const titleEl =
   <TitleTag style={{
@@ -749,18 +751,22 @@ function ProjectCardLayout({ project, as = "h3", showBlurb = true, onOpen }) {
   </div>;
 
   return (
-    <div className="project-card-layout" style={{
-      display: "flex",
-      justifyContent: "flex-end"
-    }}>
-      <div className="project-card__block" style={{
+    <div
+      className={detailBanner ? "project-card-layout project-card-layout--detail-banner" : "project-card-layout"}
+      style={{
         display: "flex",
-        flexDirection: "column",
-        gap: 0,
-        width: "min(100%, var(--project-block-w))",
-        maxWidth: "var(--project-block-w)",
-        alignSelf: "flex-end"
+        justifyContent: detailBanner ? "stretch" : "flex-end"
       }}>
+      <div
+        className={detailBanner ? "project-card__block project-card__block--detail-banner" : "project-card__block"}
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: 0,
+          width: detailBanner ? "100%" : "min(100%, var(--project-block-w))",
+          maxWidth: detailBanner ? "100%" : "var(--project-block-w)",
+          alignSelf: detailBanner ? "stretch" : "flex-end"
+        }}>
         {!overlay &&
         <div className="project-card__head" style={{
           display: "flex",
@@ -775,6 +781,8 @@ function ProjectCardLayout({ project, as = "h3", showBlurb = true, onOpen }) {
         }
         <ProjectMedia
           project={project}
+          heroSrc={detailBanner ? project.detailHero : undefined}
+          banner={detailBanner}
           interactive={interactive}
           onHoverChange={setMediaHover}
           onOpen={onOpen}
@@ -802,8 +810,9 @@ function ProjectCardLayout({ project, as = "h3", showBlurb = true, onOpen }) {
 
 }
 
-function ProjectMedia({ project, interactive = false, onHoverChange, onOpen, overlay = null }) {
+function ProjectMedia({ project, heroSrc, banner = false, interactive = false, onHoverChange, onOpen, overlay = null }) {
   const [failed, setFailed] = useState(false);
+  const src = heroSrc || project.hero2x || project.hero;
 
   const wrapProps = interactive ? {
     role: "button",
@@ -828,7 +837,13 @@ function ProjectMedia({ project, interactive = false, onHoverChange, onOpen, ove
     ...wrapProps.style
   };
 
-  const mediaStyle = {
+  const mediaStyle = banner ? {
+    width: "100%",
+    height: "auto",
+    display: "block",
+    borderRadius: "14px",
+    background: "oklch(0.975 var(--tone-c) var(--tone-h))"
+  } : {
     width: "100%",
     height: "var(--project-media-h)",
     display: "block",
@@ -852,26 +867,26 @@ function ProjectMedia({ project, interactive = false, onHoverChange, onOpen, ove
     {overlay}
   </div>;
 
-  if (project.hero && !failed) {
-    const srcSet = project.hero2x ?
+  if (src && !failed) {
+    const srcSet = !banner && project.hero2x ?
     `${project.hero} 560w, ${project.hero2x} 1024w` :
     undefined;
 
     return (
       <div
-        className="project-media-wrap"
+        className={banner ? "project-media-wrap project-media-wrap--banner" : "project-media-wrap"}
         {...wrapProps}
         style={wrapStyle}>
         <img
-          src={project.hero2x || project.hero}
+          src={src.split("/").map((part, i, arr) => i < arr.length - 1 ? part : encodeURIComponent(part)).join("/")}
           srcSet={srcSet}
-          sizes="(max-width: 720px) 100vw, 560px"
+          sizes={banner ? "(max-width: 720px) 100vw, min(100vw, var(--maxw))" : "(max-width: 720px) 100vw, 560px"}
           alt=""
           onError={() => setFailed(true)}
-          className="project-media"
+          className={banner ? "project-media project-media--banner" : "project-media"}
           style={{
             ...mediaStyle,
-            objectFit: "cover",
+            objectFit: banner ? "contain" : "cover",
             objectPosition: "center"
           }} />
         {overlayEl}
@@ -910,7 +925,187 @@ function ProjectCard({ p, indexed, onOpen, cardRef, showBlurb = true }) {
 
 }
 
+/* ============================================================
+   FOVERE — scroll story (sticky screenshot, scrolling text)
+   ============================================================ */
+const FOVERE_STORY = [
+  {
+    img: "assets/Fovere_Screenshots/Device.png",
+    eyebrow: "Home",
+    title: "Built to stay out of your way",
+    body: "Fovere is designed around one idea: logging a habit should take seconds, not willpower. A clear home screen, swipe-to-complete gestures, and a light visual language keep daily tracking simple, so you spend less time in the app and more time living the habits you care about."
+  },
+  {
+    img: "assets/Fovere_Screenshots/Device-3.png",
+    eyebrow: "Calendar · Weekly",
+    title: "See how your week is really going",
+    body: "The weekly calendar turns your day-to-day into something you can read at a glance. Bar charts show completion by day, with tooltips that spell out the numbers behind each bar: how much you finished, and what that means for your progress. No digging through menus to understand your week."
+  },
+  {
+    img: "assets/Fovere_Screenshots/Device-2.png",
+    eyebrow: "Calendar · Yearly",
+    title: "Long-term progress, one view away",
+    body: "Switch between months or the full year to see patterns that daily logging alone can\u2019t show. Color-coded days make strong stretches and rough patches obvious, so you can spot trends early and adjust before a habit quietly slips."
+  },
+  {
+    img: "assets/Fovere_Screenshots/Device-1.png",
+    eyebrow: "Analytics",
+    title: "Insights for every habit",
+    body: "Filter analytics by habit and compare trends over 7 days, 30 days, six months, or a year. See which routines are holding steady, which are improving, and which need attention, with clear charts and summaries so you know exactly where to focus next."
+  }
+];
+
+function FovereScrollStory({ steps }) {
+  const [active, setActive] = useState(0);
+  const stepRefs = useRef([]);
+
+  useEffect(() => {
+    const elements = stepRefs.current.filter(Boolean);
+    if (!elements.length) return;
+
+    const update = () => {
+      const trigger = window.innerHeight * 0.5;
+      let next = 0;
+      elements.forEach((el, i) => {
+        if (el.getBoundingClientRect().top <= trigger) next = i;
+      });
+      setActive(next);
+    };
+
+    update();
+    window.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update);
+    return () => {
+      window.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+    };
+  }, [steps]);
+
+  return (
+    <div className="fovere-story" style={{
+      display: "grid",
+      gridTemplateColumns: "minmax(0, 0.92fr) minmax(0, 1fr)",
+      columnGap: "clamp(32px, 6vw, 96px)",
+      alignItems: "start",
+      maxWidth: "var(--maxw)",
+      margin: "0 auto",
+      padding: "0 var(--pad-x)"
+    }}>
+      <div className="fovere-story__sticky" style={{
+        position: "sticky",
+        top: 0,
+        height: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center"
+      }}>
+        <div className="fovere-story__phone" style={{
+          position: "relative",
+          display: "flex",
+          justifyContent: "center"
+        }}>
+          {steps.map((s, i) =>
+          <img
+            key={s.img}
+            src={s.img}
+            alt={s.eyebrow}
+            aria-hidden={active === i ? undefined : true}
+            style={{
+              height: "min(78vh, 660px)",
+              width: "auto",
+              display: "block",
+              position: i === 0 ? "relative" : "absolute",
+              top: i === 0 ? "auto" : 0,
+              left: i === 0 ? "auto" : "50%",
+              transform: i === 0 ?
+              active === i ? "scale(1)" : "scale(0.97)" :
+              `translateX(-50%) ${active === i ? "scale(1)" : "scale(0.97)"}`,
+              opacity: active === i ? 1 : 0,
+              transition: "opacity 0.55s ease, transform 0.55s ease",
+              filter: "drop-shadow(0 30px 60px rgba(0,0,0,0.18))",
+              pointerEvents: "none"
+            }} />
+          )}
+        </div>
+      </div>
+
+      <div className="fovere-story__steps">
+        {steps.map((s, i) =>
+        <div
+          key={i}
+          ref={(el) => stepRefs.current[i] = el}
+          className="fovere-story__step"
+          style={{
+            minHeight: "100vh",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+            opacity: active === i ? 1 : 0.32,
+            transition: "opacity 0.5s ease"
+          }}>
+          <img
+            className="fovere-story__step-img"
+            src={s.img}
+            alt={s.eyebrow}
+            style={{ display: "none" }} />
+          <Mono style={{
+            display: "block",
+            color: "var(--accent)",
+            marginBottom: "18px",
+            textTransform: "none",
+            letterSpacing: "0.04em"
+          }}>
+            {String(i + 1).padStart(2, "0")} / {String(steps.length).padStart(2, "0")} · {s.eyebrow}
+          </Mono>
+          <h2 style={{
+            margin: "0 0 clamp(14px, 2vw, 20px)",
+            fontFamily: "var(--font-display)",
+            fontWeight: 600,
+            fontSize: "clamp(1.6rem, 3vw, 2.4rem)",
+            letterSpacing: "-0.02em",
+            lineHeight: 1.12,
+            color: "var(--ink)"
+          }}>{s.title}</h2>
+          <p style={{
+            margin: 0,
+            fontSize: "clamp(1.05rem, 1.6vw, 1.25rem)",
+            lineHeight: 1.6,
+            color: "var(--ink-2)",
+            maxWidth: "44ch"
+          }}>{s.body}</p>
+        </div>
+        )}
+      </div>
+    </div>);
+
+}
+
 function ProjectDetailView({ project, onBack }) {
+  const isFovere = project.slug === "fovere";
+
+  if (isFovere) {
+    return (
+      <main className="fovere-detail" style={{ padding: "12px 0 clamp(48px, 8vh, 88px)" }}>
+        {project.detailHero &&
+        <div
+          className="fovere-detail__hero"
+          style={{
+            padding: "0 var(--pad-x)",
+            maxWidth: "var(--maxw)",
+            margin: "0 auto"
+          }}>
+          <ProjectMedia
+            project={project}
+            heroSrc={project.detailHero}
+            banner />
+        </div>
+        }
+
+        <FovereScrollStory steps={FOVERE_STORY} />
+      </main>);
+
+  }
+
   return (
     <main style={{ padding: "var(--header-body-gap) 0 var(--section-y)" }}>
       <div style={{
@@ -2658,6 +2853,7 @@ styleEl.textContent = `
   :root {
     --project-block-w: 560px;
     --project-media-h: clamp(220px, 28vw, 390px);
+    --project-detail-banner-max-h: clamp(120px, 18vw, 200px);
     --site-header-h: 56px;
     --content-pad-x: clamp(20px, 3vw, 48px);
     --content-maxw: min(100%, 1520px);
@@ -2670,6 +2866,22 @@ styleEl.textContent = `
     --photo-chrome: calc(var(--photo-header-h) + var(--photo-nav-h));
     --photo-view-h: calc(100vh - var(--photo-chrome) - 2 * var(--photo-strip-py));
   }
+  .project-card-layout--detail-banner {
+    width: 100%;
+  }
+  .project-media-wrap--banner .project-media--banner {
+    max-height: var(--project-detail-banner-max-h);
+    width: 100%;
+    height: auto;
+  }
+  .fovere-detail__hero {
+    margin: 0 0 20px;
+    line-height: 0;
+  }
+  .fovere-detail__hero .project-media-wrap--banner {
+    border-radius: 14px;
+  }
+
   .photography-view {
     --photo-strip-py: max(var(--photo-strip-base), var(--photo-frame-shadow-pad, 0px));
     --photo-view-h: calc(100vh - var(--photo-chrome) - 2 * var(--photo-strip-py));
@@ -2735,6 +2947,22 @@ styleEl.textContent = `
     }
     .projects-featured__aside { position: static !important; }
     .projects-featured__blurb { max-width: none !important; }
+    .fovere-story { grid-template-columns: 1fr !important; column-gap: 0 !important; }
+    .fovere-story__sticky { display: none !important; }
+    .fovere-story__step {
+      min-height: 0 !important;
+      opacity: 1 !important;
+      padding: clamp(40px, 9vw, 72px) 0 !important;
+    }
+    .fovere-story__step-img {
+      display: block !important;
+      height: auto !important;
+      width: auto !important;
+      max-height: 72vh !important;
+      max-width: 100% !important;
+      margin: 0 auto clamp(20px, 5vw, 32px) !important;
+      filter: drop-shadow(0 24px 48px rgba(0,0,0,0.16));
+    }
     .about-page {
       height: calc(100vh - var(--site-header-h)) !important;
       overflow: hidden !important;
