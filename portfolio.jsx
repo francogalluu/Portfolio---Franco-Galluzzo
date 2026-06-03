@@ -71,6 +71,10 @@ const PROJECTS = [
   hero: "assets/Frame 14.png",
   hero2x: "assets/Frame 14.png",
   detailHero: "assets/Fovere_Screenshots/Frame 11 (1).png",
+  detailIntro: [
+    "Before building Fovere, I downloaded more than 30 habit tracker apps, started their seven-day trials, and wrote down every paid feature I could find. Then I added those features to Fovere for free to everyone.",
+    "I designed the product in Figma Make and built it with Cursor. Fovere runs on React Native and Expo for iOS. The walkthrough below shows how it works in practice: quick daily logging, calendar views from week to year, and habit-by-habit analytics when you want to go deeper."
+  ],
   tagline: "Build & Break Habits",
   intro: "Fovere is the habit tracker for building routines you can sustain\u2014and for breaking ones you want to quit or limit. Log in seconds with swipe gestures, see your week and year in Calendar, and go deep in Analytics with trends, heatmaps, and insights. Free, with no ads, and your data stays on your device.",
   buildNote: "I made this app entirely on Cursor with Claude and Figma Make AI.",
@@ -1098,6 +1102,44 @@ function ProjectDetailView({ project, onBack }) {
             project={project}
             heroSrc={project.detailHero}
             banner />
+        </div>
+        }
+
+        {(project.detailIntro || project.tagline) &&
+        <div
+          className="fovere-detail__intro"
+          style={{
+            padding: "clamp(20px, 3vw, 32px) var(--pad-x) 0",
+            maxWidth: "var(--maxw)",
+            margin: "0 auto"
+          }}>
+          {project.tagline &&
+          <p className="fovere-detail__tagline" style={{
+            margin: "0 0 10px",
+            fontFamily: "var(--font-display)",
+            fontWeight: 600,
+            fontSize: "clamp(1.15rem, 2vw, 1.35rem)",
+            letterSpacing: "-0.02em",
+            lineHeight: 1.2,
+            color: "var(--ink)",
+            textAlign: "center"
+          }}>{project.tagline}</p>
+          }
+          {project.detailIntro &&
+          (Array.isArray(project.detailIntro) ? project.detailIntro : [project.detailIntro]).map((para, i) =>
+          <p
+            key={i}
+            className="fovere-detail__blurb"
+            style={{
+              margin: i === 0 ? 0 : "14px 0 0",
+              width: "100%",
+              maxWidth: "none",
+              fontSize: "clamp(1rem, 1.5vw, 1.12rem)",
+              lineHeight: 1.6,
+              color: "var(--ink-2)"
+            }}>{para}</p>
+          )
+          }
         </div>
         }
 
@@ -2875,8 +2917,17 @@ styleEl.textContent = `
     height: auto;
   }
   .fovere-detail__hero {
-    margin: 0 0 20px;
+    margin: 0;
     line-height: 0;
+  }
+  .fovere-detail__intro {
+    margin-bottom: clamp(24px, 4vw, 40px);
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .fovere-detail__blurb {
+    width: 100%;
+    max-width: none;
   }
   .fovere-detail__hero .project-media-wrap--banner {
     border-radius: 14px;
