@@ -121,7 +121,13 @@ const PROJECTS = [
   label: "e-commerce",
   icon: "assets/sportaz-icon.png",
   hero: "assets/sportaz-hero.png",
-  tagline: "Sports goods, sold online",
+  detailHero: "assets/Sportaz/Frame 17.png",
+  storyImageVariant: "cutout",
+  detailIntro: [
+    "I grew up obsessed with football. When a friend and I were looking for something to build together, we kept asking the same question: why did buying a shirt in Argentina feel so forgettable?",
+    "Sportaz was our answer. Mystery boxes that made the purchase fun, and genuinely useful when you were buying for someone else."
+  ],
+  tagline: "Dare to surprise yourself",
   intro: "Co-founded a Football Jersey brand, scaled it to 400+ sales, and spent every day doing something I genuinely loved.",
   sections: [
     {
@@ -930,9 +936,10 @@ function ProjectCard({ p, indexed, onOpen, cardRef, showBlurb = true }) {
 }
 
 /* ============================================================
-   FOVERE — scroll story (sticky screenshot, scrolling text)
+   Project detail — scroll story (sticky image, scrolling text)
    ============================================================ */
-const FOVERE_STORY = [
+const PROJECT_STORY = {
+  fovere: [
   {
     img: "assets/Fovere_Screenshots/Device.png",
     eyebrow: "Home",
@@ -957,11 +964,97 @@ const FOVERE_STORY = [
     title: "Insights for every habit",
     body: "Filter analytics by habit and compare trends over 7 days, 30 days, six months, or a year. See which routines are holding steady, which are improving, and which need attention, with clear charts and summaries so you know exactly where to focus next."
   }
-];
+  ],
+  sportaz: [
+  {
+    img: "assets/Sportaz/edited-image-1780941151368.png",
+    eyebrow: "Origin",
+    title: "Two friends who wanted to build something",
+    body: "I started Sportaz with a friend from school. We both loved football and wanted something that was ours. Nothing fancy at first. We just felt the experience around shirts did not match how much people actually cared about the game."
+  },
+  {
+    img: "assets/Sportaz/image (1).png",
+    eyebrow: "Mystery boxes",
+    imageScale: 1.45,
+    title: "A twist on buying a shirt",
+    body: "Picking a jersey is usually straightforward. You already know what you want. We flipped that. Customers could order a mystery shirt and end up with a kit they never would have chosen on their own. The surprise was half the point."
+  },
+  {
+    img: "assets/Sportaz/edited-image-1780940884682.png",
+    eyebrow: "Growth",
+    imageScale: 1.45,
+    title: "Gifts, ads, and learning on the job",
+    body: "The boxes caught on as gifts. If you were not sure what shirt someone would like, you could leave the choice to us. Once we started running ads on Meta, orders started coming in from provinces across the country. We were shipping mystery boxes out of Buenos Aires to places we had never expected, and that is where I first got my hands dirty figuring out what was actually working."
+  }
+  ]
+};
 
-function FovereScrollStory({ steps }) {
+function StoryStepCopy({ step, index, total }) {
+  return (
+    <div className="project-story__copy">
+      <Mono style={{
+        display: "block",
+        color: "var(--accent)",
+        marginBottom: "18px",
+        textTransform: "none",
+        letterSpacing: "0.04em"
+      }}>
+        {String(index + 1).padStart(2, "0")} / {String(total).padStart(2, "0")} · {step.eyebrow}
+      </Mono>
+      <h2 style={{
+        margin: "0 0 clamp(14px, 2vw, 20px)",
+        fontFamily: "var(--font-display)",
+        fontWeight: 600,
+        fontSize: "clamp(1.6rem, 3vw, 2.4rem)",
+        letterSpacing: "-0.02em",
+        lineHeight: 1.12,
+        color: "var(--ink)"
+      }}>{step.title}</h2>
+      <p style={{
+        margin: 0,
+        fontSize: "clamp(1.05rem, 1.6vw, 1.25rem)",
+        lineHeight: 1.6,
+        color: "var(--ink-2)",
+        maxWidth: "44ch"
+      }}>{step.body}</p>
+    </div>);
+
+}
+
+function StoryStepImage({ step, className = "" }) {
+  return (
+    <div className={`project-story__crop ${className}`.trim()}>
+      <img
+        src={step.img}
+        alt={step.eyebrow}
+        loading="lazy" />
+    </div>);
+
+}
+
+function AlternatingScrollStory({ steps }) {
+  return (
+    <div className="project-story project-story--alternating">
+      {steps.map((s, i) => {
+        const flip = i % 2 === 1;
+        const media = <StoryStepImage key="media" step={s} className="project-story__crop--inline" />;
+        const copy = <StoryStepCopy key="copy" step={s} index={i} total={steps.length} />;
+        return (
+          <section
+            key={i}
+            className={`project-story__row${flip ? " project-story__row--flip" : ""}`}>
+            {flip ? [copy, media] : [media, copy]}
+          </section>);
+
+      })}
+    </div>);
+
+}
+
+function StickyScrollStory({ steps, imageVariant = "phone" }) {
   const [active, setActive] = useState(0);
   const stepRefs = useRef([]);
+  const isCutout = imageVariant === "cutout";
 
   useEffect(() => {
     const elements = stepRefs.current.filter(Boolean);
@@ -1003,18 +1096,46 @@ function FovereScrollStory({ steps }) {
         alignItems: "center",
         justifyContent: "center"
       }}>
-        <div className="fovere-story__phone" style={{
-          position: "relative",
-          display: "flex",
-          justifyContent: "center"
-        }}>
-          {steps.map((s, i) =>
+        <div
+          className={`fovere-story__phone${isCutout ? " fovere-story__phone--cutout" : ""}`}
+          style={isCutout ? {
+            position: "relative",
+            width: "min(44vw, 500px)",
+            height: "min(72vh, 540px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center"
+          } : {
+            position: "relative",
+            display: "flex",
+            justifyContent: "center"
+          }}>
+          {steps.map((s, i) => {
+            const imgScale = s.imageScale || 1;
+            const activeScale = active === i ? imgScale : imgScale * 0.97;
+            return (
           <img
             key={s.img}
-            src={s.img}
+            src={s.img.split("/").map((part, idx, arr) => idx < arr.length - 1 ? part : encodeURIComponent(part)).join("/")}
             alt={s.eyebrow}
             aria-hidden={active === i ? undefined : true}
-            style={{
+            className={isCutout ? "fovere-story__cutout-img" : undefined}
+            style={isCutout ? {
+              position: "absolute",
+              top: "50%",
+              left: "50%",
+              maxHeight: `${Math.round(100 * imgScale)}%`,
+              maxWidth: `${Math.round(100 * imgScale)}%`,
+              width: "auto",
+              height: "auto",
+              display: "block",
+              objectFit: "contain",
+              transform: `translate(-50%, -50%) scale(${activeScale / imgScale})`,
+              opacity: active === i ? 1 : 0,
+              transition: "opacity 0.55s ease, transform 0.55s ease",
+              filter: "drop-shadow(0 28px 52px rgba(0,0,0,0.16))",
+              pointerEvents: "none"
+            } : {
               height: "min(78vh, 660px)",
               width: "auto",
               display: "block",
@@ -1029,7 +1150,8 @@ function FovereScrollStory({ steps }) {
               filter: "drop-shadow(0 30px 60px rgba(0,0,0,0.18))",
               pointerEvents: "none"
             }} />
-          )}
+            );
+          })}
         </div>
       </div>
 
@@ -1048,35 +1170,14 @@ function FovereScrollStory({ steps }) {
             transition: "opacity 0.5s ease"
           }}>
           <img
-            className="fovere-story__step-img"
-            src={s.img}
+            className={`fovere-story__step-img${isCutout ? " fovere-story__cutout-img" : ""}`}
+            src={s.img.split("/").map((part, idx, arr) => idx < arr.length - 1 ? part : encodeURIComponent(part)).join("/")}
             alt={s.eyebrow}
-            style={{ display: "none" }} />
-          <Mono style={{
-            display: "block",
-            color: "var(--accent)",
-            marginBottom: "18px",
-            textTransform: "none",
-            letterSpacing: "0.04em"
-          }}>
-            {String(i + 1).padStart(2, "0")} / {String(steps.length).padStart(2, "0")} · {s.eyebrow}
-          </Mono>
-          <h2 style={{
-            margin: "0 0 clamp(14px, 2vw, 20px)",
-            fontFamily: "var(--font-display)",
-            fontWeight: 600,
-            fontSize: "clamp(1.6rem, 3vw, 2.4rem)",
-            letterSpacing: "-0.02em",
-            lineHeight: 1.12,
-            color: "var(--ink)"
-          }}>{s.title}</h2>
-          <p style={{
-            margin: 0,
-            fontSize: "clamp(1.05rem, 1.6vw, 1.25rem)",
-            lineHeight: 1.6,
-            color: "var(--ink-2)",
-            maxWidth: "44ch"
-          }}>{s.body}</p>
+            style={{
+              display: "none",
+              ...(isCutout && s.imageScale ? { maxHeight: `${Math.round(72 * s.imageScale)}vh` } : null)
+            }} />
+          <StoryStepCopy step={s} index={i} total={steps.length} />
         </div>
         )}
       </div>
@@ -1084,10 +1185,15 @@ function FovereScrollStory({ steps }) {
 
 }
 
-function ProjectDetailView({ project, onBack }) {
-  const isFovere = project.slug === "fovere";
+function ProjectScrollStory({ steps, layout = "sticky", imageVariant = "phone" }) {
+  if (layout === "alternating") return <AlternatingScrollStory steps={steps} />;
+  return <StickyScrollStory steps={steps} imageVariant={imageVariant} />;
+}
 
-  if (isFovere) {
+function ProjectDetailView({ project, onBack }) {
+  const storySteps = PROJECT_STORY[project.slug];
+
+  if (project.detailHero && storySteps) {
     return (
       <main className="fovere-detail" style={{ padding: "12px 0 clamp(48px, 8vh, 88px)" }}>
         {project.detailHero &&
@@ -1143,7 +1249,10 @@ function ProjectDetailView({ project, onBack }) {
         </div>
         }
 
-        <FovereScrollStory steps={FOVERE_STORY} />
+        <ProjectScrollStory
+          steps={storySteps}
+          layout={project.storyLayout}
+          imageVariant={project.storyImageVariant} />
       </main>);
 
   }
@@ -2932,6 +3041,44 @@ styleEl.textContent = `
   .fovere-detail__hero .project-media-wrap--banner {
     border-radius: 14px;
   }
+  .fovere-story__phone--cutout {
+    margin: 0 auto;
+  }
+
+  .project-story--alternating {
+    max-width: var(--maxw);
+    margin: 0 auto;
+    padding: 0 var(--pad-x);
+  }
+  .project-story__row {
+    display: grid;
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+    column-gap: clamp(32px, 6vw, 96px);
+    align-items: center;
+    min-height: min(84vh, 760px);
+    padding: clamp(36px, 6vh, 72px) 0;
+  }
+  .project-story__crop {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    max-height: min(46vh, 420px);
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.14);
+  }
+  .project-story__crop img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+    object-position: center;
+    border-radius: 14px;
+  }
+  .project-story__copy {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
 
   .photography-view {
     --photo-strip-py: max(var(--photo-strip-base), var(--photo-frame-shadow-pad, 0px));
@@ -3005,7 +3152,8 @@ styleEl.textContent = `
       opacity: 1 !important;
       padding: clamp(40px, 9vw, 72px) 0 !important;
     }
-    .fovere-story__step-img {
+    .fovere-story__step-img,
+    .fovere-story__cutout-img.fovere-story__step-img {
       display: block !important;
       height: auto !important;
       width: auto !important;
@@ -3013,6 +3161,27 @@ styleEl.textContent = `
       max-width: 100% !important;
       margin: 0 auto clamp(20px, 5vw, 32px) !important;
       filter: drop-shadow(0 24px 48px rgba(0,0,0,0.16));
+    }
+    .fovere-story__step .fovere-story__cutout-img {
+      position: static !important;
+      transform: none !important;
+      opacity: 1 !important;
+    }
+    .project-story__row {
+      grid-template-columns: 1fr !important;
+      row-gap: clamp(20px, 5vw, 32px) !important;
+      min-height: 0 !important;
+      padding: clamp(40px, 9vw, 72px) 0 !important;
+    }
+    .project-story__row--flip .project-story__copy {
+      order: 2;
+    }
+    .project-story__row--flip .project-story__crop--inline {
+      order: 1;
+    }
+    .project-story__crop {
+      max-height: none !important;
+      width: 100% !important;
     }
     .about-page {
       height: calc(100vh - var(--site-header-h)) !important;
