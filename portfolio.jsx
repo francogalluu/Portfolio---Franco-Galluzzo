@@ -426,24 +426,27 @@ function Hero({ layout, setView }) {
   return <LandingHero setView={setView} />;
 }
 
-function useFitWidthText(contentRef, containerRef, { minPx = 20, maxPxCap = 160, fillRatio = 0.98 } = {}) {
+function useFitWidthText(contentRef, containerRef, { minPx = 20, maxPxCap = 160, fillRatio = 0.98, viewportBottomPad = 0 } = {}) {
   useEffect(() => {
     const content = contentRef.current;
     const box = containerRef.current;
     if (!content || !box) return;
 
     const fit = () => {
-      const limit = box.clientWidth * fillRatio;
+      const limit = box.clientWidth * fillRatio - 4;
       if (limit < 8) return;
 
+      const measuredWidth = () => Math.ceil(content.getBoundingClientRect().width);
+      const viewportBottom = () =>
+        (window.visualViewport?.height ?? window.innerHeight) - viewportBottomPad;
+      let hi = Math.min(maxPxCap, Math.max(minPx, Math.floor(limit / 5.5)));
       let lo = minPx;
-      let hi = maxPxCap;
       let best = minPx;
 
       while (lo <= hi) {
         const mid = Math.floor((lo + hi) / 2);
         content.style.fontSize = `${mid}px`;
-        if (content.scrollWidth <= limit) {
+        if (measuredWidth() <= limit) {
           best = mid;
           lo = mid + 1;
         } else {
@@ -452,12 +455,29 @@ function useFitWidthText(contentRef, containerRef, { minPx = 20, maxPxCap = 160,
       }
 
       content.style.fontSize = `${best}px`;
+      while (best > minPx && measuredWidth() > limit) {
+        best -= 1;
+        content.style.fontSize = `${best}px`;
+      }
+
+      if (viewportBottomPad > 0) {
+        while (best > minPx && content.getBoundingClientRect().bottom > viewportBottom()) {
+          best -= 1;
+          content.style.fontSize = `${best}px`;
+        }
+        while (best > minPx && measuredWidth() > limit) {
+          best -= 1;
+          content.style.fontSize = `${best}px`;
+        }
+      }
     };
 
     const scheduleFit = () => requestAnimationFrame(fit);
     const ro = new ResizeObserver(scheduleFit);
     ro.observe(box);
     window.addEventListener("resize", scheduleFit);
+    window.visualViewport?.addEventListener("resize", scheduleFit);
+    window.visualViewport?.addEventListener("scroll", scheduleFit);
     scheduleFit();
     let cancelled = false;
     document.fonts?.ready?.then(() => {
@@ -467,9 +487,11 @@ function useFitWidthText(contentRef, containerRef, { minPx = 20, maxPxCap = 160,
       cancelled = true;
       ro.disconnect();
       window.removeEventListener("resize", scheduleFit);
+      window.visualViewport?.removeEventListener("resize", scheduleFit);
+      window.visualViewport?.removeEventListener("scroll", scheduleFit);
       content.style.fontSize = "";
     };
-  }, [contentRef, containerRef, minPx, maxPxCap, fillRatio]);
+  }, [contentRef, containerRef, minPx, maxPxCap, fillRatio, viewportBottomPad]);
 }
 
 function HoverWeightName({ text, style, elRef }) {
@@ -616,66 +638,35 @@ function MiniLineGraph() {
   );
 }
 
-function useSyncInnerToNameWidth(innerRef, nameRef) {
-  useEffect(() => {
-    const inner = innerRef.current;
-    const name = nameRef.current;
-    if (!inner || !name) return;
-
-    const sync = () => {
-      const shell = inner.parentElement;
-      const shellWidth = shell ? shell.clientWidth : inner.clientWidth;
-      inner.style.width = "100%";
-      const nameWidth = Math.ceil(name.scrollWidth);
-      if (nameWidth > 0) {
-        inner.style.width = `${Math.min(nameWidth, shellWidth)}px`;
-      }
-    };
-
-    const schedule = () => requestAnimationFrame(sync);
-    const ro = new ResizeObserver(schedule);
-    ro.observe(name);
-    if (inner.parentElement) ro.observe(inner.parentElement);
-    window.addEventListener("resize", schedule);
-    schedule();
-    let cancelled = false;
-    document.fonts?.ready?.then(() => {
-      if (!cancelled) schedule();
-    });
-    return () => {
-      cancelled = true;
-      ro.disconnect();
-      window.removeEventListener("resize", schedule);
-      inner.style.width = "";
-    };
-  }, [innerRef, nameRef]);
-}
-
 function LandingHero({ setView }) {
   const shellRef = useRef(null);
-  const innerRef = useRef(null);
   const nameRef = useRef(null);
-  useFitWidthText(nameRef, shellRef, { minPx: 24, maxPxCap: 160, fillRatio: 0.96 });
-  useSyncInnerToNameWidth(innerRef, nameRef);
+  useFitWidthText(nameRef, shellRef, {
+    minPx: 24,
+    maxPxCap: 160,
+    fillRatio: 0.92,
+    viewportBottomPad: 16
+  });
 
   const scrollToWork = () => {
     const el = document.getElementById("work");
     if (el) window.scrollTo({ top: el.offsetTop - 20, behavior: "smooth" });
   };
   return (
-    <section style={{
-      minHeight: "100vh",
+    <section className="landing-hero" style={{
+      height: "100svh",
+      minHeight: "100svh",
       display: "flex", flexDirection: "column",
-      overflow: "hidden"
+      position: "relative", overflow: "hidden"
     }}>
       <div ref={shellRef} className="landing-hero__shell">
-        <div ref={innerRef} className="landing-hero__inner">
+        <div className="landing-hero__inner">
         <div className="landing-top" style={{
           display: "grid",
           gridTemplateColumns: "minmax(0, 1.5fr) minmax(0, 1fr)",
           columnGap: "var(--landing-menu-text-gap)",
           rowGap: "clamp(2px, 0.4vw, 8px)",
-          alignItems: "start",
+          alignItems: "stretch",
           width: "100%",
           minWidth: 0
         }}>
@@ -687,7 +678,7 @@ function LandingHero({ setView }) {
               display: "flex",
               flexDirection: "column",
               gap: "clamp(2px, 0.4vw, 8px)",
-              alignSelf: "start"
+              alignSelf: "end"
             }}>
             <div className="landing-top__projects">
               <BigLink label="Projects" onClick={scrollToWork} />
@@ -732,17 +723,15 @@ function LandingHero({ setView }) {
           </div>
         </div>
 
-        <div
-          className="landing-hero__name-fit"
-          style={{ marginTop: "var(--landing-text-name-gap)" }}>
+        <div className="landing-hero__name-fit">
           <HoverWeightName
             elRef={nameRef}
             text="Franco Galluzzo"
             style={{
               textTransform: "uppercase",
-              lineHeight: 0.86,
-              letterSpacing: "-0.045em", whiteSpace: "nowrap", textAlign: "left",
-              padding: "1px 0 0",
+              lineHeight: 1,
+              letterSpacing: "-0.045em", whiteSpace: "nowrap", textAlign: "center",
+              padding: "0.06em 0 0.04em",
               userSelect: "none", color: "var(--accent)",
               fontSize: "clamp(2.85rem, 14.5vw, 10rem)"
             }} />
@@ -3128,6 +3117,9 @@ styleEl.textContent = `
     --photo-chrome: calc(var(--photo-header-h) + var(--photo-nav-h));
     --photo-view-h: calc(100vh - var(--photo-chrome) - 2 * var(--photo-strip-py));
   }
+  html, body {
+    overflow-x: clip;
+  }
   .project-card-layout--detail-banner {
     width: 100%;
   }
@@ -3213,11 +3205,10 @@ styleEl.textContent = `
     width: 100%;
     max-width: 100%;
     min-width: 0;
+    flex: 1;
+    min-height: 0;
     box-sizing: border-box;
-    overflow-x: clip;
-    padding: var(--header-body-gap) var(--pad-x) 0;
-    display: flex;
-    justify-content: center;
+    padding: var(--header-body-gap) var(--pad-x) clamp(24px, 3vh, 40px);
   }
   .landing-hero__inner {
     width: 100%;
@@ -3225,24 +3216,39 @@ styleEl.textContent = `
     min-width: 0;
   }
   .landing-hero__name-fit {
-    width: 100%;
+    position: absolute;
+    left: var(--pad-x);
+    right: var(--pad-x);
+    bottom: clamp(24px, 3vh, 40px);
+    width: auto;
     min-width: 0;
-    overflow-x: clip;
+    overflow: visible;
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    pointer-events: none;
+  }
+  .landing-hero__name-fit .name-display {
+    pointer-events: auto;
   }
   .landing-hero__name-fit .name-display {
     width: max-content;
-    max-width: 100%;
-    margin-inline: 0;
-    text-align: left;
+    max-width: none;
+    margin-inline: auto;
+    text-align: center;
+    overflow: visible;
   }
   .name-display {
     font-family: var(--font-display);
     font-weight: 700;
     font-synthesis: none;
+    line-height: 1;
+    overflow: visible;
   }
   .name-display__char {
     display: inline-block;
     font-weight: inherit;
+    line-height: 1;
     cursor: default;
     transition: font-weight 0.55s cubic-bezier(0.22, 1, 0.36, 1);
   }
@@ -3263,7 +3269,7 @@ styleEl.textContent = `
     display: flex;
     flex-direction: column;
     gap: clamp(2px, 0.4vw, 8px);
-    align-self: start;
+    align-self: end;
   }
   .landing-top__side {
     grid-column: 2;
@@ -3285,6 +3291,7 @@ styleEl.textContent = `
     .landing-top__nav {
       grid-column: 1 !important;
       grid-row: 1 !important;
+      align-self: start !important;
     }
     .landing-top__side { display: contents; }
     .landing-top__graph { grid-column: 1 !important; grid-row: 2 !important; }
@@ -3786,10 +3793,22 @@ styleEl.textContent = `
   .photo-lightbox__close:hover {
     background: rgba(255,255,255,0.22);
   }
+  @media (max-height: 900px) {
+    :root {
+      --header-body-gap: clamp(40px, 5vh, 56px);
+      --landing-text-name-gap: clamp(28px, 4vh, 48px);
+    }
+  }
+  @media (max-height: 720px) {
+    :root {
+      --header-body-gap: clamp(32px, 4vh, 44px);
+      --landing-text-name-gap: clamp(20px, 3vh, 32px);
+    }
+  }
   @media (max-width: 480px) {
     :root {
       --header-body-gap: 40px;
-      --landing-text-name-gap: 60px;
+      --landing-text-name-gap: 32px;
     }
     .site-header__inner > button,
     .site-header__inner nav button {
