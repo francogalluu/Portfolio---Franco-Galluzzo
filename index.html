@@ -65,9 +65,56 @@
   ::selection { background: #000; color: #fff; }
 
   #root { min-height: 100vh; }
+
+  /* Desktop-only: portfolio hidden below 1024px */
+  .desktop-only-notice {
+    display: none;
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding: clamp(32px, 8vw, 48px);
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    background: var(--bg);
+  }
+  .desktop-only-notice__inner {
+    max-width: 28rem;
+  }
+  .desktop-only-notice__name {
+    margin: 0 0 1.25rem;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(1.35rem, 5vw, 1.65rem);
+    letter-spacing: -0.02em;
+  }
+  .desktop-only-notice__text {
+    margin: 0;
+    font-size: 1rem;
+    line-height: 1.55;
+    color: var(--ink-2);
+  }
+  .desktop-only-notice__accent {
+    display: block;
+    margin-top: 1.5rem;
+    font-family: var(--font-meta);
+    font-size: 0.72rem;
+    letter-spacing: var(--meta-tracking);
+    color: var(--ink-3);
+  }
+  @media (max-width: 1023px) {
+    #root { display: none !important; }
+    .desktop-only-notice { display: flex; }
+  }
 </style>
 </head>
 <body>
+<div class="desktop-only-notice" role="status" aria-live="polite">
+  <div class="desktop-only-notice__inner">
+    <p class="desktop-only-notice__name">Franco Galluzzo</p>
+    <p class="desktop-only-notice__text">This portfolio is designed for desktop. Please open it on a computer for the full experience.</p>
+    <span class="desktop-only-notice__accent">Desktop · 1024px and wider</span>
+  </div>
+</div>
 <div id="root"></div>
 
 <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>

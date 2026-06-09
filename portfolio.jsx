@@ -426,9 +426,56 @@ function Hero({ layout, setView }) {
   return <LandingHero setView={setView} />;
 }
 
-function HoverWeightName({ text, style }) {
+function useFitWidthText(contentRef, containerRef, { minPx = 20, maxPxCap = 160, fillRatio = 0.98 } = {}) {
+  useEffect(() => {
+    const content = contentRef.current;
+    const box = containerRef.current;
+    if (!content || !box) return;
+
+    const fit = () => {
+      const limit = box.clientWidth * fillRatio;
+      if (limit < 8) return;
+
+      let lo = minPx;
+      let hi = maxPxCap;
+      let best = minPx;
+
+      while (lo <= hi) {
+        const mid = Math.floor((lo + hi) / 2);
+        content.style.fontSize = `${mid}px`;
+        if (content.scrollWidth <= limit) {
+          best = mid;
+          lo = mid + 1;
+        } else {
+          hi = mid - 1;
+        }
+      }
+
+      content.style.fontSize = `${best}px`;
+    };
+
+    const scheduleFit = () => requestAnimationFrame(fit);
+    const ro = new ResizeObserver(scheduleFit);
+    ro.observe(box);
+    window.addEventListener("resize", scheduleFit);
+    scheduleFit();
+    let cancelled = false;
+    document.fonts?.ready?.then(() => {
+      if (!cancelled) scheduleFit();
+    });
+    return () => {
+      cancelled = true;
+      ro.disconnect();
+      window.removeEventListener("resize", scheduleFit);
+      content.style.fontSize = "";
+    };
+  }, [contentRef, containerRef, minPx, maxPxCap, fillRatio]);
+}
+
+function HoverWeightName({ text, style, elRef }) {
   return (
     <div
+      ref={elRef}
       className="name-display"
       aria-label={text}
       style={style}>
@@ -569,7 +616,48 @@ function MiniLineGraph() {
   );
 }
 
+function useSyncInnerToNameWidth(innerRef, nameRef) {
+  useEffect(() => {
+    const inner = innerRef.current;
+    const name = nameRef.current;
+    if (!inner || !name) return;
+
+    const sync = () => {
+      const shell = inner.parentElement;
+      const shellWidth = shell ? shell.clientWidth : inner.clientWidth;
+      inner.style.width = "100%";
+      const nameWidth = Math.ceil(name.scrollWidth);
+      if (nameWidth > 0) {
+        inner.style.width = `${Math.min(nameWidth, shellWidth)}px`;
+      }
+    };
+
+    const schedule = () => requestAnimationFrame(sync);
+    const ro = new ResizeObserver(schedule);
+    ro.observe(name);
+    if (inner.parentElement) ro.observe(inner.parentElement);
+    window.addEventListener("resize", schedule);
+    schedule();
+    let cancelled = false;
+    document.fonts?.ready?.then(() => {
+      if (!cancelled) schedule();
+    });
+    return () => {
+      cancelled = true;
+      ro.disconnect();
+      window.removeEventListener("resize", schedule);
+      inner.style.width = "";
+    };
+  }, [innerRef, nameRef]);
+}
+
 function LandingHero({ setView }) {
+  const shellRef = useRef(null);
+  const innerRef = useRef(null);
+  const nameRef = useRef(null);
+  useFitWidthText(nameRef, shellRef, { minPx: 24, maxPxCap: 160, fillRatio: 0.96 });
+  useSyncInnerToNameWidth(innerRef, nameRef);
+
   const scrollToWork = () => {
     const el = document.getElementById("work");
     if (el) window.scrollTo({ top: el.offsetTop - 20, behavior: "smooth" });
@@ -580,28 +668,36 @@ function LandingHero({ setView }) {
       display: "flex", flexDirection: "column",
       overflow: "hidden"
     }}>
-      <div style={{
-        display: "flex", alignItems: "flex-start",
-        padding: "var(--header-body-gap) var(--pad-x) 0"
-      }}>
+      <div ref={shellRef} className="landing-hero__shell">
+        <div ref={innerRef} className="landing-hero__inner">
         <div className="landing-top" style={{
           display: "grid",
-          gridTemplateColumns: "1.5fr 1fr",
+          gridTemplateColumns: "minmax(0, 1.5fr) minmax(0, 1fr)",
           columnGap: "var(--landing-menu-text-gap)",
           rowGap: "clamp(2px, 0.4vw, 8px)",
           alignItems: "start",
-          width: "100%"
+          width: "100%",
+          minWidth: 0
         }}>
-          <div className="landing-top__projects" style={{ gridColumn: 1, gridRow: 1 }}>
-            <BigLink label="Projects" onClick={scrollToWork} />
-          </div>
-
-          <div className="landing-top__photos" style={{ gridColumn: 1, gridRow: 2 }}>
-            <BigLink label="Photos" onClick={() => setView("Photography")} />
-          </div>
-
-          <div className="landing-top__about" style={{ gridColumn: 1, gridRow: 3 }}>
-            <BigLink label="About" onClick={() => setView("About")} />
+          <div
+            className="landing-top__nav"
+            style={{
+              gridColumn: 1,
+              gridRow: "1 / 4",
+              display: "flex",
+              flexDirection: "column",
+              gap: "clamp(2px, 0.4vw, 8px)",
+              alignSelf: "start"
+            }}>
+            <div className="landing-top__projects">
+              <BigLink label="Projects" onClick={scrollToWork} />
+            </div>
+            <div className="landing-top__photos">
+              <BigLink label="Photos" onClick={() => setView("Photography")} />
+            </div>
+            <div className="landing-top__about">
+              <BigLink label="About" onClick={() => setView("About")} />
+            </div>
           </div>
 
           <div className="landing-top__side" style={{
@@ -619,9 +715,9 @@ function LandingHero({ setView }) {
 
             <p className="landing-top__tagline-headline" style={{
               margin: 0,
+              maxWidth: "34ch",
               ...LANDING_TAGLINE,
-              fontSize: "clamp(1.4rem, 2.4vw, 1.9rem)", lineHeight: 1.3, letterSpacing: "-0.01em",
-              whiteSpace: "nowrap"
+              fontSize: "clamp(1.4rem, 2.4vw, 1.9rem)", lineHeight: 1.3, letterSpacing: "-0.01em"
             }}>
               Data Analytics, UX &amp; <span style={{ color: "var(--accent)" }}>AI enthusiast.</span>
             </p>
@@ -635,18 +731,24 @@ function LandingHero({ setView }) {
             </p>
           </div>
         </div>
-      </div>
 
-      <HoverWeightName
-        text="Franco Galluzzo"
-        style={{
-          textTransform: "uppercase",
-          lineHeight: 0.86,
-          letterSpacing: "-0.045em", whiteSpace: "nowrap", textAlign: "center",
-          margin: "var(--landing-text-name-gap) 0 0", padding: "1px 0 0",
-          userSelect: "none", color: "var(--accent)",
-          fontSize: "clamp(2.85rem, 14.5vw, 10rem)"
-        }} />
+        <div
+          className="landing-hero__name-fit"
+          style={{ marginTop: "var(--landing-text-name-gap)" }}>
+          <HoverWeightName
+            elRef={nameRef}
+            text="Franco Galluzzo"
+            style={{
+              textTransform: "uppercase",
+              lineHeight: 0.86,
+              letterSpacing: "-0.045em", whiteSpace: "nowrap", textAlign: "left",
+              padding: "1px 0 0",
+              userSelect: "none", color: "var(--accent)",
+              fontSize: "clamp(2.85rem, 14.5vw, 10rem)"
+            }} />
+        </div>
+        </div>
+      </div>
     </section>);
 
 }
@@ -921,10 +1023,11 @@ function ProjectMedia({ project, heroSrc, banner = false, interactive = false, o
 
 }
 
-function ProjectCard({ p, indexed, onOpen, cardRef, showBlurb = true }) {
+function ProjectCard({ p, indexed, onOpen, cardRef, showBlurb = true, className = "" }) {
   return (
     <article
       ref={cardRef}
+      className={className || undefined}
       style={{
         display: "grid",
         gap: "clamp(12px, 2vw, 16px)"
@@ -1332,10 +1435,17 @@ function ProjectsView({ layout, onOpenProject }) {
     if (!elements.length) return;
 
     const updateActive = () => {
-      const trigger = window.innerHeight * 0.32;
+      const viewportCenter = window.innerHeight * 0.42;
       let next = 0;
+      let bestDistance = Infinity;
       elements.forEach((el, i) => {
-        if (el.getBoundingClientRect().top <= trigger) next = i;
+        const rect = el.getBoundingClientRect();
+        const cardCenter = rect.top + rect.height * 0.35;
+        const distance = Math.abs(cardCenter - viewportCenter);
+        if (distance < bestDistance) {
+          bestDistance = distance;
+          next = i;
+        }
       });
       setActiveIndex(next);
     };
@@ -1412,6 +1522,7 @@ function ProjectsView({ layout, onOpenProject }) {
             indexed={indexed}
             onOpen={onOpenProject}
             showBlurb={false}
+            className="projects-featured__card"
             cardRef={(el) => {
               cardRefs.current[i] = el;
               if (el) el.dataset.projectIndex = String(i);
@@ -2758,7 +2869,7 @@ function AboutView() {
             <br /><br />
             I have studied AI, digitalization and how modern businesses are built, but also appreciate the importance of experience design in everything I do.
             <br /><br />
-            I also believe that anyone can learn anything if you can just sit down and put an effort.
+            I also love learning a lot of new stuff.
           </p>
           </div>
         </div>
@@ -3098,6 +3209,32 @@ styleEl.textContent = `
     color: var(--accent);
   }
 
+  .landing-hero__shell {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    overflow-x: clip;
+    padding: var(--header-body-gap) var(--pad-x) 0;
+    display: flex;
+    justify-content: center;
+  }
+  .landing-hero__inner {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+  .landing-hero__name-fit {
+    width: 100%;
+    min-width: 0;
+    overflow-x: clip;
+  }
+  .landing-hero__name-fit .name-display {
+    width: max-content;
+    max-width: 100%;
+    margin-inline: 0;
+    text-align: left;
+  }
   .name-display {
     font-family: var(--font-display);
     font-weight: 700;
@@ -3120,23 +3257,42 @@ styleEl.textContent = `
   .landing-top__graph {
     height: clamp(2.4rem, 6.2vw, 6rem);
   }
+  .landing-top__nav {
+    grid-column: 1;
+    grid-row: 1 / 4;
+    display: flex;
+    flex-direction: column;
+    gap: clamp(2px, 0.4vw, 8px);
+    align-self: start;
+  }
   .landing-top__side {
     grid-column: 2;
     grid-row: 1 / 4;
   }
-  @media (max-width: 720px) {
-    .hero-editorial { grid-template-columns: 1fr !important; }
+  .landing-top {
+    min-width: 0;
+  }
+  .landing-top__tagline-headline,
+  .landing-top__tagline-body {
+    max-width: min(34ch, 100%);
+    overflow-wrap: break-word;
+  }
+  @media (max-width: 1100px) {
     .landing-top {
       grid-template-columns: 1fr !important;
       row-gap: 20px !important;
     }
+    .landing-top__nav {
+      grid-column: 1 !important;
+      grid-row: 1 !important;
+    }
     .landing-top__side { display: contents; }
-    .landing-top__projects { grid-row: 1 !important; }
     .landing-top__graph { grid-column: 1 !important; grid-row: 2 !important; }
-    .landing-top__photos { grid-row: 3 !important; }
-    .landing-top__tagline-headline { grid-column: 1 !important; grid-row: 4 !important; white-space: normal !important; }
-    .landing-top__about { grid-row: 5 !important; }
-    .landing-top__tagline-body { grid-column: 1 !important; grid-row: 6 !important; }
+    .landing-top__tagline-headline { grid-column: 1 !important; grid-row: 3 !important; }
+    .landing-top__tagline-body { grid-column: 1 !important; grid-row: 4 !important; }
+  }
+  @media (max-width: 720px) {
+    .hero-editorial { grid-template-columns: 1fr !important; }
     .project-card-layout { justify-content: flex-start !important; }
     .project-card__block { width: 100% !important; max-width: 100% !important; }
     .projects-featured {
@@ -3184,9 +3340,10 @@ styleEl.textContent = `
       width: 100% !important;
     }
     .about-page {
-      height: calc(100vh - var(--site-header-h)) !important;
+      height: calc(100dvh - var(--site-header-h)) !important;
       overflow: hidden !important;
     }
+    .project-media-wrap { border-radius: 16px !important; }
     .about-view {
       grid-template-columns: 1fr !important;
       grid-template-rows: minmax(0, 34vh) minmax(0, 26vh) minmax(0, 1fr) !important;
@@ -3390,6 +3547,15 @@ styleEl.textContent = `
   .about-certifications__scroll::-webkit-scrollbar-thumb {
     background: var(--line);
     border-radius: 3px;
+  }
+  @media (min-width: 721px) {
+    .projects-featured__card {
+      min-height: calc(58svh - 48px);
+      align-content: start;
+    }
+    .projects-featured__list {
+      padding-bottom: clamp(24px, 6vh, 72px);
+    }
   }
   .projects-featured__blurb {
     animation: featured-blurb-in .35s ease;
@@ -3619,6 +3785,60 @@ styleEl.textContent = `
   }
   .photo-lightbox__close:hover {
     background: rgba(255,255,255,0.22);
+  }
+  @media (max-width: 480px) {
+    :root {
+      --header-body-gap: 40px;
+      --landing-text-name-gap: 60px;
+    }
+    .site-header__inner > button,
+    .site-header__inner nav button {
+      min-height: 44px !important;
+      display: inline-flex !important;
+      align-items: center !important;
+    }
+    .about-page {
+      height: calc(100dvh - var(--site-header-h)) !important;
+      overflow-y: auto !important;
+      -webkit-overflow-scrolling: touch;
+    }
+    .about-view {
+      display: flex !important;
+      flex-direction: column !important;
+      height: auto !important;
+      min-height: 0 !important;
+    }
+    .about-view__bio-col,
+    .about-view__bio-wrap {
+      overflow: visible !important;
+      height: auto !important;
+      min-height: 0 !important;
+    }
+    .about-view__bio {
+      font-size: clamp(1.05rem, 4.2vw, 1.2rem) !important;
+    }
+    .about-view__education,
+    .about-view__education-box {
+      overflow: visible !important;
+      height: auto !important;
+      min-height: 0 !important;
+    }
+    .about-view__education-fit {
+      font-size: 0.875rem !important;
+    }
+    .about-certifications__scroll {
+      max-height: 280px !important;
+    }
+    .photography-view {
+      height: calc(100dvh - var(--photo-header-h)) !important;
+    }
+    .photo-camera-intro__img {
+      max-width: min(36vw, 180px) !important;
+    }
+    .fovere-story__step-img,
+    .fovere-story__cutout-img.fovere-story__step-img {
+      max-height: 58vh !important;
+    }
   }
 `;
 document.head.appendChild(styleEl);
