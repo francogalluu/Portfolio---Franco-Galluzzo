@@ -711,7 +711,8 @@ function LandingHero({ setView }) {
               ...LANDING_TAGLINE,
               fontSize: "clamp(1.4rem, 2.4vw, 1.9rem)", lineHeight: 1.3, letterSpacing: "-0.01em"
             }}>
-              Data Analytics, UX &amp; <span style={{ color: "var(--accent)" }}>AI enthusiast.</span>
+              Data Analytics, UX &amp;<br />
+              <span style={{ color: "var(--accent)" }}>AI enthusiast.</span>
             </p>
 
             <p className="landing-top__tagline-body" style={{
@@ -3721,6 +3722,9 @@ styleEl.textContent = `
   .landing-top__tagline-body {
     max-width: min(34ch, 100%);
     overflow-wrap: break-word;
+  }
+  .landing-top__tagline-headline {
+    min-height: 2.6em;
   }
   @media (max-width: 1100px) {
     .landing-top {
