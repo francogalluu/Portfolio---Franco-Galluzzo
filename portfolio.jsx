@@ -827,18 +827,6 @@ function ProjectCardLayout({ project, as = "h3", showBlurb = true, onOpen }) {
     color: overlay ? "#fff" : "var(--ink)"
   }}>
     {project.title}
-    {interactive &&
-    <span
-      aria-hidden="true"
-      className="project-card__arrow"
-      style={{
-        display: "inline-block",
-        marginLeft: "0.28em",
-        opacity: mediaHover ? 1 : 0,
-        transform: mediaHover ? "translateX(0)" : "translateX(-5px)",
-        transition: "opacity .28s ease, transform .28s ease"
-      }}>→</span>
-    }
   </TitleTag>;
 
   const badgesEl =
@@ -929,7 +917,7 @@ function ProjectMedia({ project, heroSrc, banner = false, interactive = false, o
     },
     onMouseEnter: () => onHoverChange?.(true),
     onMouseLeave: () => onHoverChange?.(false),
-    style: { cursor: "pointer" }
+    style: { cursor: "none" }
   } : {};
 
   const wrapStyle = {
@@ -1445,6 +1433,81 @@ function ProjectDetailView({ project, onBack }) {
 
 }
 
+function ProjectArrowCursor() {
+  const nodeRef = useRef(null);
+  const motionRef = useRef({
+    x: 0, y: 0, tx: 0, ty: 0, opacity: 0, targetOpacity: 0, raf: null, initialized: false
+  });
+  const reducedMotion = useRef(
+    typeof window !== "undefined" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  );
+
+  useEffect(() => {
+    const onMove = (e) => {
+      const m = motionRef.current;
+      m.tx = e.clientX;
+      m.ty = e.clientY;
+      m.targetOpacity = e.target.closest(".project-media-wrap:not(.project-media-wrap--banner)") ? 1 : 0;
+      if (!m.initialized) {
+        m.x = m.tx;
+        m.y = m.ty;
+        m.initialized = true;
+      }
+    };
+    const onLeave = () => {
+      motionRef.current.targetOpacity = 0;
+    };
+
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseout", onLeave);
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseout", onLeave);
+    };
+  }, []);
+
+  useEffect(() => {
+    const posEase = reducedMotion.current ? 1 : 0.18;
+    const fadeEase = reducedMotion.current ? 1 : 0.2;
+    const scaleEase = reducedMotion.current ? 1 : 0.2;
+
+    const tick = () => {
+      const m = motionRef.current;
+      const el = nodeRef.current;
+      const show = m.targetOpacity > 0.01;
+
+      if (show || m.opacity > 0.01) {
+        m.x += (m.tx - m.x) * posEase;
+        m.y += (m.ty - m.y) * posEase;
+      }
+      m.opacity += (m.targetOpacity - m.opacity) * fadeEase;
+      const targetScale = 0.6 + m.opacity * 0.4;
+
+      if (el) {
+        el.style.transform = `translate3d(${m.x}px, ${m.y}px, 0) translate(-50%, -50%) scale(${targetScale})`;
+        el.style.opacity = String(m.opacity);
+      }
+      m.raf = requestAnimationFrame(tick);
+    };
+
+    motionRef.current.raf = requestAnimationFrame(tick);
+    return () => {
+      if (motionRef.current.raf) cancelAnimationFrame(motionRef.current.raf);
+      motionRef.current.raf = null;
+    };
+  }, []);
+
+  return (
+    <div ref={nodeRef} className="project-arrow-cursor" aria-hidden="true">
+      <svg viewBox="0 0 64 64" fill="none" stroke="#ffffff" strokeWidth="4" strokeLinecap="butt" strokeLinejoin="miter">
+        <line x1="16" y1="48" x2="48" y2="16" />
+        <polyline points="22 16 48 16 48 42" />
+      </svg>
+    </div>);
+
+}
+
 function ProjectsView({ layout, onOpenProject }) {
   const indexed = layout === "editorial";
   const [activeIndex, setActiveIndex] = useState(0);
@@ -1486,6 +1549,7 @@ function ProjectsView({ layout, onOpenProject }) {
     <main id="work" style={{
       padding: "clamp(48px, 8vh, 88px) var(--pad-x) var(--section-y)"
     }}>
+      <ProjectArrowCursor />
       <div className="projects-featured" style={{
         display: "grid",
         gridTemplateColumns: "minmax(220px, 1.15fr) minmax(0, 1.85fr)",
@@ -3981,6 +4045,29 @@ styleEl.textContent = `
     z-index: 40;
     opacity: 0;
     will-change: transform, opacity;
+  }
+  .project-arrow-cursor {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: clamp(72px, 7vw, 104px);
+    height: clamp(72px, 7vw, 104px);
+    pointer-events: none;
+    z-index: 60;
+    opacity: 0;
+    will-change: transform, opacity;
+  }
+  .project-arrow-cursor svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+  @media (hover: none) {
+    .project-arrow-cursor { display: none; }
+    .project-media-wrap:not(.project-media-wrap--banner) { cursor: pointer !important; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .project-arrow-cursor { transition: none; }
   }
   .photo-eye-cursor svg {
     display: block;
