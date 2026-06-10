@@ -517,7 +517,7 @@ function HoverWeightName({ text, style, elRef }) {
 
 }
 
-function BigLink({ label, onClick }) {
+function BigLink({ label, onClick, cursor }) {
   return (
     <button
       type="button"
@@ -525,7 +525,7 @@ function BigLink({ label, onClick }) {
       onClick={onClick}
       style={{
         display: "inline-block", width: "fit-content", maxWidth: "100%",
-        cursor: "pointer", margin: 0, padding: 0,
+        cursor: cursor || "pointer", margin: 0, padding: 0,
         background: "none", border: "none", textAlign: "left",
         fontFamily: "var(--font-display)", fontWeight: 700,
         fontSize: "clamp(2.4rem, 6.2vw, 6rem)", lineHeight: 1.0,
@@ -660,6 +660,7 @@ function LandingHero({ setView }) {
       display: "flex", flexDirection: "column",
       position: "relative", overflow: "hidden"
     }}>
+      <NavCursor />
       <div ref={shellRef} className="landing-hero__shell">
         <div className="landing-hero__inner">
         <div className="landing-top" style={{
@@ -966,6 +967,7 @@ function ProjectMedia({ project, heroSrc, banner = false, interactive = false, o
     return (
       <div
         className={banner ? "project-media-wrap project-media-wrap--banner" : "project-media-wrap"}
+        data-project={project.slug}
         {...wrapProps}
         style={wrapStyle}>
         <img
@@ -988,6 +990,7 @@ function ProjectMedia({ project, heroSrc, banner = false, interactive = false, o
   return (
     <div
       className="project-media-wrap"
+      data-project={project.slug}
       {...wrapProps}
       style={wrapStyle}>
       <div
@@ -1434,10 +1437,18 @@ function ProjectDetailView({ project, onBack }) {
 
 }
 
+const PROJECT_CURSOR_ICONS = {
+  sportaz: "⚽",
+  fovere:  "🌱"
+};
+
 function ProjectArrowCursor() {
-  const nodeRef = useRef(null);
-  const motionRef = useRef({
-    x: 0, y: 0, tx: 0, ty: 0, opacity: 0, targetOpacity: 0, raf: null, initialized: false
+  const nodeRef    = useRef(null);
+  const svgRef     = useRef(null);
+  const emojiRef   = useRef(null);
+  const motionRef  = useRef({
+    x: 0, y: 0, tx: 0, ty: 0, opacity: 0, targetOpacity: 0,
+    raf: null, initialized: false, activeSlug: null
   });
   const reducedMotion = useRef(
     typeof window !== "undefined" &&
@@ -1449,32 +1460,36 @@ function ProjectArrowCursor() {
       const m = motionRef.current;
       m.tx = e.clientX;
       m.ty = e.clientY;
-      m.targetOpacity = e.target.closest(".project-media-wrap:not(.project-media-wrap--banner)") ? 1 : 0;
-      if (!m.initialized) {
-        m.x = m.tx;
-        m.y = m.ty;
-        m.initialized = true;
+      const wrap = e.target.closest(".project-media-wrap:not(.project-media-wrap--banner)");
+      m.targetOpacity = wrap ? 1 : 0;
+
+      const slug = wrap ? (wrap.dataset.project || null) : null;
+      if (slug && slug !== m.activeSlug) {
+        m.activeSlug = slug;
+        const emoji = PROJECT_CURSOR_ICONS[slug];
+        if (svgRef.current)   svgRef.current.style.display  = emoji ? "none"  : "block";
+        if (emojiRef.current) emojiRef.current.style.display = emoji ? "block" : "none";
+        if (emojiRef.current && emoji) emojiRef.current.textContent = emoji;
       }
+
+      if (!m.initialized) { m.x = m.tx; m.y = m.ty; m.initialized = true; }
     };
-    const onLeave = () => {
-      motionRef.current.targetOpacity = 0;
-    };
+    const onLeave = () => { motionRef.current.targetOpacity = 0; };
 
     window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseout", onLeave);
+    window.addEventListener("mouseout",  onLeave);
     return () => {
       window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("mouseout", onLeave);
+      window.removeEventListener("mouseout",  onLeave);
     };
   }, []);
 
   useEffect(() => {
-    const posEase = reducedMotion.current ? 1 : 0.18;
+    const posEase  = reducedMotion.current ? 1 : 0.18;
     const fadeEase = reducedMotion.current ? 1 : 0.2;
-    const scaleEase = reducedMotion.current ? 1 : 0.2;
 
     const tick = () => {
-      const m = motionRef.current;
+      const m  = motionRef.current;
       const el = nodeRef.current;
       const show = m.targetOpacity > 0.01;
 
@@ -1483,11 +1498,11 @@ function ProjectArrowCursor() {
         m.y += (m.ty - m.y) * posEase;
       }
       m.opacity += (m.targetOpacity - m.opacity) * fadeEase;
-      const targetScale = 0.6 + m.opacity * 0.4;
+      const scale = 0.6 + m.opacity * 0.4;
 
       if (el) {
-        el.style.transform = `translate3d(${m.x}px, ${m.y}px, 0) translate(-50%, -50%) scale(${targetScale})`;
-        el.style.opacity = String(m.opacity);
+        el.style.transform = `translate3d(${m.x}px, ${m.y}px, 0) translate(-50%, -50%) scale(${scale})`;
+        el.style.opacity   = String(m.opacity);
       }
       m.raf = requestAnimationFrame(tick);
     };
@@ -1501,10 +1516,11 @@ function ProjectArrowCursor() {
 
   return (
     <div ref={nodeRef} className="project-arrow-cursor" aria-hidden="true">
-      <svg viewBox="0 0 64 64" fill="none" stroke="#ffffff" strokeWidth="4" strokeLinecap="butt" strokeLinejoin="miter">
+      <svg ref={svgRef} viewBox="0 0 64 64" fill="none" stroke="#ffffff" strokeWidth="4" strokeLinecap="butt" strokeLinejoin="miter">
         <line x1="16" y1="48" x2="48" y2="16" />
         <polyline points="22 16 48 16 48 42" />
       </svg>
+      <span ref={emojiRef} className="project-arrow-cursor__emoji" style={{ display: "none" }} />
     </div>);
 
 }
@@ -2147,6 +2163,96 @@ function PhotoEyeCursor({ enabled, scrollRef, lightboxOpen }) {
         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
         <circle cx="12" cy="12" r="3" />
       </svg>
+    </div>
+  );
+}
+
+function NavCursor() {
+  const nodeRef = useRef(null);
+  const iconRef = useRef(null);
+  const motionRef = useRef({
+    x: 0, y: 0, tx: 0, ty: 0, opacity: 0, targetOpacity: 0,
+    raf: null, initialized: false, activeIcon: null
+  });
+  const reducedMotion = useRef(
+    typeof window !== "undefined" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  );
+
+  const ICONS = {
+    projects: "🗂️",
+    photos:   "📷",
+    about:    "🙋"
+  };
+
+  useEffect(() => {
+    const onMove = (e) => {
+      const m = motionRef.current;
+      m.tx = e.clientX;
+      m.ty = e.clientY;
+
+      const btn = e.target.closest(".big-link");
+      const inProjects = btn && btn.closest(".landing-top__projects");
+      const inPhotos   = btn && btn.closest(".landing-top__photos");
+      const inAbout    = btn && btn.closest(".landing-top__about");
+      const icon = inProjects ? "projects" : inPhotos ? "photos" : inAbout ? "about" : null;
+
+      m.targetOpacity = icon ? 1 : 0;
+
+      if (icon && icon !== m.activeIcon) {
+        m.activeIcon = icon;
+        if (iconRef.current) iconRef.current.textContent = ICONS[icon];
+      }
+
+      if (!m.initialized) {
+        m.x = m.tx;
+        m.y = m.ty;
+        m.initialized = true;
+      }
+    };
+
+    const onLeave = () => { motionRef.current.targetOpacity = 0; };
+
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseleave", onLeave);
+    return () => {
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseleave", onLeave);
+    };
+  }, []);
+
+  useEffect(() => {
+    const posEase  = reducedMotion.current ? 1 : 0.14;
+    const fadeEase = reducedMotion.current ? 1 : 0.16;
+
+    const tick = () => {
+      const m  = motionRef.current;
+      const el = nodeRef.current;
+      const show = m.targetOpacity > 0.01;
+
+      if (show || m.opacity > 0.01) {
+        m.x += (m.tx - m.x) * posEase;
+        m.y += (m.ty - m.y) * posEase;
+      }
+      m.opacity += ((show ? m.targetOpacity : 0) - m.opacity) * fadeEase;
+
+      if (el) {
+        el.style.transform = `translate3d(${m.x}px, ${m.y}px, 0) translate(-50%, -50%)`;
+        el.style.opacity   = String(m.opacity);
+      }
+      m.raf = requestAnimationFrame(tick);
+    };
+
+    motionRef.current.raf = requestAnimationFrame(tick);
+    return () => {
+      if (motionRef.current.raf) cancelAnimationFrame(motionRef.current.raf);
+      motionRef.current.raf = null;
+    };
+  }, []);
+
+  return (
+    <div ref={nodeRef} className="nav-icon-cursor" aria-hidden="true">
+      <div ref={iconRef} className="nav-icon-cursor__icon" />
     </div>
   );
 }
@@ -3641,6 +3747,31 @@ styleEl.textContent = `
     color: var(--accent);
   }
 
+  .landing-top__photos .big-link,
+  .landing-top__about .big-link,
+  .landing-top__projects .big-link {
+    cursor: none !important;
+  }
+
+  .nav-icon-cursor {
+    position: fixed;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0;
+    will-change: transform, opacity;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .nav-icon-cursor__icon {
+    font-size: 36px;
+    line-height: 1;
+    filter: drop-shadow(0 2px 6px rgba(0,0,0,0.35));
+    user-select: none;
+  }
+
   .landing-hero__shell {
     width: 100%;
     max-width: 100%;
@@ -4065,6 +4196,14 @@ styleEl.textContent = `
     display: block;
     width: 100%;
     height: 100%;
+  }
+  .project-arrow-cursor__emoji {
+    font-size: 52px;
+    line-height: 1;
+    display: block;
+    text-align: center;
+    user-select: none;
+    filter: drop-shadow(0 2px 6px rgba(0,0,0,0.4));
   }
   @media (hover: none) {
     .project-arrow-cursor { display: none; }
