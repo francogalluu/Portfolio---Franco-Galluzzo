@@ -3210,6 +3210,7 @@ function App() {
 }
 
 /* view fade-in */
+const DEFAULT_PHOTO_FRAME_VARS = photoGalleryStyleVars(PHOTO_GALLERY_STYLE_DEFAULTS);
 const styleEl = document.createElement("style");
 styleEl.textContent = `
   :root {
@@ -3223,7 +3224,8 @@ styleEl.textContent = `
     --photo-header-h: 60px;
     --photo-nav-h: 48px;
     --photo-strip-base: clamp(14px, 2.2vh, 28px);
-    --photo-frame-shadow-pad: 0px;
+    --photo-frame-shadow: ${DEFAULT_PHOTO_FRAME_VARS["--photo-frame-shadow"]};
+    --photo-frame-shadow-pad: ${DEFAULT_PHOTO_FRAME_VARS["--photo-frame-shadow-pad"]};
     --photo-strip-py: var(--photo-strip-base);
     --photo-chrome: calc(var(--photo-header-h) + var(--photo-nav-h));
     --photo-view-h: calc(100vh - var(--photo-chrome) - 2 * var(--photo-strip-py));
@@ -3242,6 +3244,9 @@ styleEl.textContent = `
   }
   .project-card-layout--detail-banner {
     width: 100%;
+  }
+  .project-media-wrap {
+    box-shadow: var(--photo-frame-shadow, 0 2px 6px rgba(0, 0, 0, 0.1), 0 6px 20px rgba(0, 0, 0, 0.14));
   }
   .project-media-wrap--banner .project-media--banner {
     max-height: var(--project-detail-banner-max-h);
