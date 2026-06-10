@@ -108,7 +108,8 @@ const PROJECTS = [
       body: "No analytics SDKs, no ads, no tracking. Fovere does not upload your habits to a server; everything you enter is stored locally on your phone."
     }
   ],
-  closing: "Download Fovere and start with one habit so easy you cannot say no."
+  closing: "Download Fovere and start with one habit so easy you cannot say no.",
+  appStoreUrl: "https://apps.apple.com/us/app/fovere-habit-tracker/id6761730532"
 },
 {
   n: "02",
@@ -1345,6 +1346,36 @@ function ProjectDetailView({ project, onBack }) {
           steps={storySteps}
           layout={project.storyLayout}
           imageVariant={project.storyImageVariant} />
+
+        {project.appStoreUrl &&
+        <div className="fovere-cta">
+          {project.closing &&
+          <p className="fovere-cta__line">{project.closing}</p>
+          }
+          <a
+            href={project.appStoreUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="fovere-cta__btn">
+            <span className="fovere-cta__icon-wrap" aria-hidden="true">
+              <img
+                className="fovere-cta__icon"
+                src="assets/fovere-icon.png"
+                alt=""
+                width={52}
+                height={52} />
+              <span className="fovere-cta__sheen" />
+            </span>
+            <span className="fovere-cta__text">
+              <span className="fovere-cta__kicker">Download on the</span>
+              <span className="fovere-cta__store">App Store</span>
+            </span>
+            <svg className="fovere-cta__arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </a>
+        </div>
+        }
       </main>);
 
   }
@@ -3268,6 +3299,138 @@ styleEl.textContent = `
   }
   .fovere-detail__hero .project-media-wrap--banner {
     border-radius: 14px;
+  }
+  .fovere-cta {
+    --fovere-teal: #0e7c86;
+    padding: clamp(16px, 3vw, 36px) var(--pad-x) 0;
+    max-width: var(--maxw);
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: clamp(20px, 3vw, 30px);
+  }
+  .fovere-cta__line {
+    margin: 0;
+    max-width: 580px;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(1.2rem, 2.4vw, 1.6rem);
+    letter-spacing: -0.02em;
+    line-height: 1.3;
+    color: var(--ink);
+  }
+  .fovere-cta__btn {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 16px;
+    padding: 12px 20px 12px 13px;
+    border-radius: 18px;
+    text-decoration: none;
+    color: var(--ink);
+    background:
+      linear-gradient(180deg, oklch(1 0 0) 0%, oklch(0.985 var(--tone-c) var(--tone-h)) 100%);
+    border: 1px solid var(--line);
+    transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+                border-color 0.35s ease;
+    overflow: hidden;
+  }
+  .fovere-cta__btn::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(120deg, transparent 30%, color-mix(in oklab, var(--fovere-teal) 55%, transparent) 50%, transparent 70%);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+            mask-composite: exclude;
+    opacity: 0;
+    transition: opacity 0.35s ease;
+    pointer-events: none;
+  }
+  .fovere-cta__btn:hover {
+    transform: translateY(-3px);
+    border-color: color-mix(in oklab, var(--fovere-teal) 40%, var(--line));
+  }
+  .fovere-cta__btn:hover::before { opacity: 1; }
+  .fovere-cta__icon-wrap {
+    position: relative;
+    width: 52px;
+    height: 52px;
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+  }
+  .fovere-cta__icon {
+    position: relative;
+    z-index: 1;
+    width: 52px;
+    height: 52px;
+    border-radius: 13px;
+    display: block;
+    transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .fovere-cta__sheen {
+    position: absolute;
+    z-index: 2;
+    top: 0;
+    left: 0;
+    width: 52px;
+    height: 52px;
+    border-radius: 13px;
+    overflow: hidden;
+    pointer-events: none;
+  }
+  .fovere-cta__sheen::after {
+    content: "";
+    position: absolute;
+    top: -60%;
+    left: -120%;
+    width: 60%;
+    height: 220%;
+    background: linear-gradient(100deg, transparent, oklch(1 0 0 / 0.75), transparent);
+    transform: rotate(8deg);
+    animation: fovereSheen 4.5s ease-in-out infinite;
+  }
+  .fovere-cta__btn:hover .fovere-cta__icon {
+    transform: scale(1.08) rotate(-4deg);
+  }
+  .fovere-cta__text {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    line-height: 1.15;
+  }
+  .fovere-cta__kicker {
+    font-size: 0.7rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-2);
+  }
+  .fovere-cta__store {
+    font-family: var(--font-display);
+    font-size: 1.2rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+  }
+  .fovere-cta__arrow {
+    color: var(--fovere-teal);
+    transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .fovere-cta__btn:hover .fovere-cta__arrow {
+    transform: translateX(4px);
+  }
+  @keyframes fovereSheen {
+    0% { left: -120%; }
+    22% { left: 140%; }
+    100% { left: 140%; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .fovere-cta__sheen::after { animation: none; }
   }
   .fovere-story__phone--cutout {
     margin: 0 auto;
