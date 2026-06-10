@@ -244,6 +244,7 @@ function inferCertCategory(degree) {
 }
 
 const NAV = ["Projects", "Photography", "About"];
+const NAV_LABELS = { Projects: "Projects", Photography: "Photos", About: "About" };
 
 /* ============================================================
    HEADER
@@ -300,7 +301,7 @@ function SiteHeader({ view, setView }) {
                   paddingBottom: "2px",
                   transition: "color .2s ease, border-color .2s ease"
                 }}>
-                {item}
+                {NAV_LABELS[item] || item}
               </button>);
           })}
         </nav>
@@ -403,7 +404,7 @@ function Hero({ layout, setView }) {
         <div style={{ borderTop: "1.5px solid var(--ink)", paddingTop: "16px" }}>
           <Mono style={{ display: "block", color: "var(--ink)" }}>Index — 2026</Mono>
           <Mono style={{ display: "block", marginTop: "10px", lineHeight: 1.9 }}>
-            01&nbsp;&nbsp;Projects<br />02&nbsp;&nbsp;Photography<br />03&nbsp;&nbsp;About
+            01&nbsp;&nbsp;Projects<br />02&nbsp;&nbsp;Photos<br />03&nbsp;&nbsp;About
           </Mono>
         </div>
         <div>
@@ -2976,7 +2977,7 @@ function App() {
   const [transition, setTransition] = useState(null);
   const transitionBusy = useRef(false);
 
-  const runTransition = useCallback((label, apply) => {
+  const runTransition = useCallback((label, apply, fontStyle) => {
     if (transitionBusy.current) return;
 
     const reduce =
@@ -2995,7 +2996,7 @@ function App() {
     const HOLD = 110; // brief beat on the destination name
     const REVEAL = 620; // panel lifts away to reveal the new page
 
-    setTransition({ label, phase: "cover" });
+    setTransition({ label, phase: "cover", fontStyle });
 
     setTimeout(() => {
       apply();
@@ -3003,7 +3004,7 @@ function App() {
       // always starts with the new page at the top, not the previous scroll offset.
       document.body.style.top = "0";
       window.scrollTo({ top: 0, behavior: "auto" });
-      setTransition({ label, phase: "reveal" });
+      setTransition({ label, phase: "reveal", fontStyle });
 
       setTimeout(() => {
         setTransition(null);
@@ -3012,7 +3013,7 @@ function App() {
     }, COVER + HOLD);
   }, []);
 
-  const VIEW_LABELS = { Projects: "Home", Photography: "Photography", About: "About" };
+  const VIEW_LABELS = { Projects: "Home", Photography: "Photos", About: "About" };
 
   const setViewAndTop = useCallback((v) => {
     if (v === view && !activeProject) return;
@@ -3022,13 +3023,18 @@ function App() {
     });
   }, [view, activeProject, runTransition]);
 
+  const PROJECT_FONTS = {
+    fovere:  { fontFamily: '"Playfair Display", Georgia, serif', fontWeight: 700, fontStyle: "normal" },
+    sportaz: { fontFamily: '"Montserrat", system-ui, sans-serif', fontWeight: 700, fontStyle: "italic" },
+  };
+
   const openProject = useCallback((slug) => {
     const project = PROJECTS.find((p) => p.slug === slug);
     if (!project) return;
     runTransition(project.title, () => {
       setActiveProject(project);
       setView("Projects");
-    });
+    }, PROJECT_FONTS[slug] || null);
   }, [runTransition]);
 
   const closeProject = useCallback(() => {
@@ -3115,7 +3121,11 @@ function App() {
         aria-hidden="true">
 
         <div className="page-transition__panel">
-          <span className="page-transition__label">{transition.label}</span>
+          <span
+            className="page-transition__label"
+            style={transition.fontStyle || undefined}>
+            {transition.label}
+          </span>
         </div>
       </div>
       }
@@ -3225,7 +3235,7 @@ styleEl.textContent = `
     scrollbar-gutter: stable;
   }
   html.page-transition-active {
-    background-color: #0b0b0b;
+    background-color: oklch(0.97 var(--tone-c) var(--tone-h));
   }
   html.page-transition-active body {
     overflow: hidden !important;
@@ -3316,28 +3326,30 @@ styleEl.textContent = `
     align-items: center;
     justify-content: center;
     background:
-      radial-gradient(120% 80% at 50% 0%, oklch(0.22 0 0) 0%, transparent 60%),
-      #0b0b0b;
+      radial-gradient(120% 80% at 50% 100%, oklch(0.90 var(--tone-c) var(--tone-h)) 0%, transparent 60%),
+      oklch(0.97 var(--tone-c) var(--tone-h));
     will-change: transform;
   }
   /* leading accent edge that rides the panel up */
-  .page-transition__panel::before {
+  .page-transition__panel::before,
+  .page-transition__panel::after {
     content: "";
     position: absolute;
-    top: 0;
     left: 0;
     right: 0;
     height: 3px;
     background: var(--accent);
-    box-shadow: 0 0 22px 1px var(--accent);
+    box-shadow: 0 0 18px 1px var(--accent);
   }
+  .page-transition__panel::before { top: 0; }
+  .page-transition__panel::after  { bottom: 0; }
   .page-transition__label {
     font-family: var(--font-display);
     font-weight: 600;
     letter-spacing: -0.02em;
     font-size: clamp(2.4rem, 8vw, 6rem);
     line-height: 1;
-    color: #fafafa;
+    color: oklch(0.12 var(--tone-c) var(--tone-h));
     will-change: transform, opacity;
   }
   .page-transition__label::after {
