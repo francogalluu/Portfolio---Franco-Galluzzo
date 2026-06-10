@@ -251,7 +251,6 @@ const NAV = ["Projects", "Photography", "About"];
 function SiteHeader({ view, setView }) {
   const go = (v) => {
     setView(v);
-    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   return (
@@ -2961,6 +2960,8 @@ function App() {
   const [photoEdits, setPhotoEdits] = useState({});
   const [photoPickMode, setPhotoPickMode] = useState(false);
   const [photoGalleryStyle, setPhotoGalleryStyle] = useState(PHOTO_GALLERY_STYLE_DEFAULTS);
+  const viewRef = useRef(view);
+  viewRef.current = view;
 
   const photoGroups = useMemo(
     () => buildPhotoGroups(galleryImages),
@@ -2971,26 +2972,116 @@ function App() {
     [photoGroups]
   );
 
-  const setViewAndTop = useCallback((v) => {
-    setActiveProject(null);
-    setView(v);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+  // page-transition state: null when idle, otherwise { label, phase }
+  const [transition, setTransition] = useState(null);
+  const transitionBusy = useRef(false);
+
+  const runTransition = useCallback((label, apply) => {
+    if (transitionBusy.current) return;
+
+    const reduce =
+      typeof window !== "undefined" &&
+      window.matchMedia &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    if (reduce) {
+      apply();
+      window.scrollTo({ top: 0, behavior: "auto" });
+      return;
+    }
+
+    transitionBusy.current = true;
+    const COVER = 560; // panel rises to cover the screen
+    const HOLD = 110; // brief beat on the destination name
+    const REVEAL = 620; // panel lifts away to reveal the new page
+
+    setTransition({ label, phase: "cover" });
+
+    setTimeout(() => {
+      apply();
+      // Reset body.top to 0 while panel still covers screen so the reveal
+      // always starts with the new page at the top, not the previous scroll offset.
+      document.body.style.top = "0";
+      window.scrollTo({ top: 0, behavior: "auto" });
+      setTransition({ label, phase: "reveal" });
+
+      setTimeout(() => {
+        setTransition(null);
+        transitionBusy.current = false;
+      }, REVEAL);
+    }, COVER + HOLD);
   }, []);
+
+  const VIEW_LABELS = { Projects: "Home", Photography: "Photography", About: "About" };
+
+  const setViewAndTop = useCallback((v) => {
+    if (v === view && !activeProject) return;
+    runTransition(VIEW_LABELS[v] || v, () => {
+      setActiveProject(null);
+      setView(v);
+    });
+  }, [view, activeProject, runTransition]);
 
   const openProject = useCallback((slug) => {
     const project = PROJECTS.find((p) => p.slug === slug);
     if (!project) return;
-    setActiveProject(project);
-    setView("Projects");
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }, []);
+    runTransition(project.title, () => {
+      setActiveProject(project);
+      setView("Projects");
+    });
+  }, [runTransition]);
 
   const closeProject = useCallback(() => {
-    setActiveProject(null);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }, []);
+    runTransition("Home", () => {
+      setActiveProject(null);
+    });
+  }, [runTransition]);
 
   const showHeader = view !== "Projects" || activeProject !== null;
+  const isPageTransitioning = transition !== null;
+
+  /* Prevent scrollbar flicker / layout shift during page transitions.
+     We intentionally leave html overflow untouched so scrollbar-gutter:stable
+     keeps the gutter width reserved at all times — no layout shift when the
+     panel lifts away. body position:fixed is enough to stop scrolling, and the
+     full-viewport transition panel hides any visual during the swap. */
+  useEffect(() => {
+    if (!isPageTransitioning) return;
+
+    const root = document.documentElement;
+    const body = document.body;
+    const scrollY = window.scrollY;
+
+    root.classList.add("page-transition-active");
+
+    const prev = {
+      bodyOverflow: body.style.overflow,
+      bodyPosition: body.style.position,
+      bodyTop: body.style.top,
+      bodyLeft: body.style.left,
+      bodyRight: body.style.right,
+      bodyWidth: body.style.width
+    };
+
+    body.style.overflow = "hidden";
+    body.style.position = "fixed";
+    body.style.top = `-${scrollY}px`;
+    body.style.left = "0";
+    body.style.right = "0";
+    body.style.width = "100%";
+
+    return () => {
+      root.classList.remove("page-transition-active");
+      body.style.position = prev.bodyPosition;
+      body.style.top = prev.bodyTop;
+      body.style.left = prev.bodyLeft;
+      body.style.right = prev.bodyRight;
+      body.style.width = prev.bodyWidth;
+      body.style.overflow =
+        viewRef.current === "Photography" || viewRef.current === "About" ? "hidden" : "";
+      window.scrollTo({ top: 0, behavior: "auto" });
+    };
+  }, [isPageTransitioning]);
 
   // apply tweaks to CSS variables
   useEffect(() => {
@@ -3018,8 +3109,18 @@ function App() {
 
   return (
     <div>
+      {transition &&
+      <div
+        className={`page-transition page-transition--${transition.phase}`}
+        aria-hidden="true">
+
+        <div className="page-transition__panel">
+          <span className="page-transition__label">{transition.label}</span>
+        </div>
+      </div>
+      }
       {showHeader && <SiteHeader view={view} setView={setViewAndTop} />}
-      <div key={view + t.layout} className="view-fade">
+      <div key={view + (activeProject ? activeProject.slug : "") + t.layout} className="view-fade">
         {view === "Projects" && activeProject &&
         <ProjectDetailView project={activeProject} onBack={closeProject} />
         }
@@ -3120,6 +3221,15 @@ styleEl.textContent = `
   html, body {
     overflow-x: clip;
   }
+  html {
+    scrollbar-gutter: stable;
+  }
+  html.page-transition-active {
+    background-color: #0b0b0b;
+  }
+  html.page-transition-active body {
+    overflow: hidden !important;
+  }
   .project-card-layout--detail-banner {
     width: 100%;
   }
@@ -3189,6 +3299,91 @@ styleEl.textContent = `
   }
   .view-fade { animation: viewFade .42s cubic-bezier(.2,.7,.2,1); }
   @keyframes viewFade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+  /* ============ PAGE TRANSITION (sweeping panel) ============ */
+  .page-transition {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    overflow: hidden;
+    pointer-events: all;
+    overscroll-behavior: none;
+  }
+  .page-transition__panel {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background:
+      radial-gradient(120% 80% at 50% 0%, oklch(0.22 0 0) 0%, transparent 60%),
+      #0b0b0b;
+    will-change: transform;
+  }
+  /* leading accent edge that rides the panel up */
+  .page-transition__panel::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--accent);
+    box-shadow: 0 0 22px 1px var(--accent);
+  }
+  .page-transition__label {
+    font-family: var(--font-display);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    font-size: clamp(2.4rem, 8vw, 6rem);
+    line-height: 1;
+    color: #fafafa;
+    will-change: transform, opacity;
+  }
+  .page-transition__label::after {
+    content: ".";
+    color: var(--accent);
+  }
+
+  /* --- cover phase: panel rises from the bottom to hide the screen --- */
+  .page-transition--cover .page-transition__panel {
+    transform: translateY(100%);
+    animation: ptCover .56s cubic-bezier(.76,0,.24,1) forwards;
+  }
+  .page-transition--cover .page-transition__label {
+    opacity: 0;
+    animation: ptLabelIn .42s cubic-bezier(.2,.7,.2,1) .26s forwards;
+  }
+  @keyframes ptCover {
+    from { transform: translateY(100%); }
+    to   { transform: translateY(0); }
+  }
+  @keyframes ptLabelIn {
+    from { opacity: 0; transform: translateY(26px); filter: blur(6px); }
+    to   { opacity: 1; transform: translateY(0); filter: blur(0); }
+  }
+
+  /* --- reveal phase: panel lifts away off the top, unveiling the new page --- */
+  .page-transition--reveal .page-transition__panel {
+    transform: translateY(0);
+    animation: ptReveal .62s cubic-bezier(.76,0,.24,1) forwards;
+  }
+  .page-transition--reveal .page-transition__label {
+    opacity: 1;
+    animation: ptLabelOut .34s cubic-bezier(.55,0,1,.45) forwards;
+  }
+  @keyframes ptReveal {
+    from { transform: translateY(0); }
+    to   { transform: translateY(-100%); }
+  }
+  @keyframes ptLabelOut {
+    from { opacity: 1; transform: translateY(0); }
+    to   { opacity: 0; transform: translateY(-30px); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .view-fade { animation: none; }
+  }
   .big-link {
     width: fit-content;
     max-width: 100%;
