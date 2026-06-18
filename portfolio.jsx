@@ -1305,7 +1305,7 @@ function LandingHero({ setView }) {
             minWidth: 0
           }}>
             <div ref={graphRef} className="landing-top__graph" style={{ minHeight: 0 }}>
-              <MiniLineGraph onGameStart={startGame} />
+              <MiniLineGraph />
             </div>
 
             <p className="landing-top__tagline-headline" style={{
