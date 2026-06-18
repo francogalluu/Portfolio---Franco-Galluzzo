@@ -540,9 +540,11 @@ function BigLink({ label, onClick, cursor }) {
    MINI LINE GRAPH  — self-drawing chart line for the landing hero
    Fills its container; path is generated from measured dimensions.
    ============================================================ */
-function MiniLineGraph() {
+function MiniLineGraph({ onGameStart }) {
   const svgRef  = useRef(null);
   const pathRef = useRef(null);
+  const [hovered, setHovered] = useState(false);
+  const interactive = typeof onGameStart === "function";
 
   useEffect(() => {
     const svg  = svgRef.current;
@@ -620,7 +622,7 @@ function MiniLineGraph() {
     };
   }, []);
 
-  return (
+  const svg = (
     <svg
       ref={svgRef}
       width="100%" height="100%"
@@ -637,11 +639,598 @@ function MiniLineGraph() {
       />
     </svg>
   );
+
+  if (!interactive) return svg;
+
+  return (
+    <div
+      className="mini-line-graph"
+      role="button"
+      tabIndex={0}
+      aria-label="Play a hidden bike game"
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      onClick={onGameStart}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onGameStart(); }
+      }}
+      style={{
+        position: "relative",
+        width: "100%",
+        height: "100%",
+        cursor: hovered ? "pointer" : "default"
+      }}
+    >
+      {svg}
+      <span
+        className="mini-line-graph__emoji"
+        aria-hidden="true"
+        style={{
+          position: "absolute",
+          inset: 0,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: "clamp(1.3rem, 3vw, 2.2rem)",
+          pointerEvents: "none",
+          opacity: hovered ? 1 : 0,
+          transform: hovered ? "scale(1)" : "scale(0.6)",
+          transition: "opacity 0.22s ease, transform 0.28s cubic-bezier(0.22, 1, 0.36, 1)"
+        }}
+      >
+        {"\uD83C\uDFAE"}
+      </span>
+    </div>
+  );
+}
+
+/* ============================================================
+   BIKE GAME  — hidden Easter egg launched from the landing line.
+   Zooms into the orange graph line, which becomes a ridable hill.
+   ============================================================ */
+function BikeGameOverlay({ phase, originRect, onClose }) {
+  const [expanded, setExpanded] = useState(false);
+
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => setExpanded(true));
+    return () => cancelAnimationFrame(raf);
+  }, []);
+
+  const vw = typeof window !== "undefined" ? window.innerWidth : 0;
+  const vh = typeof window !== "undefined" ? window.innerHeight : 0;
+  let collapsedClip = "inset(0px round 0px)";
+  if (originRect) {
+    const top = Math.max(0, originRect.top);
+    const right = Math.max(0, vw - originRect.right);
+    const bottom = Math.max(0, vh - originRect.bottom);
+    const left = Math.max(0, originRect.left);
+    collapsedClip = `inset(${top}px ${right}px ${bottom}px ${left}px round 6px)`;
+  }
+
+  return (
+    <div
+      className="bike-game-overlay"
+      style={{ clipPath: expanded ? "inset(0px round 0px)" : collapsedClip }}
+    >
+      <BikeGame running={phase === "playing"} onClose={onClose} />
+    </div>
+  );
+}
+
+const BIKE_CFG = {
+  ACCEL: 0.22,
+  AUTO_ACCEL: 0.14,   /* gentle self-acceleration toward cruise speed */
+  BRAKE: 0.4,
+  FRICTION: 0.992,
+  GRAVITY: 0.55,
+  SLOPE_ACC: 0.55,
+  BASE_BOOST: 1.4,    /* +40% base speed */
+  SPEED_RAMP: 0.0005, /* speed scale gained per frame-unit (gradual) */
+  MAX_SCALE: 1.9,     /* cap on the gradual speed-up */
+  CRASH_ANGLE: 0.95,  /* landing mismatch (rad) */
+  FLIP_ANGLE: 1.7,    /* full tumble (rad) */
+  CACTUS_COLOR: "#2f7d52"
+};
+
+function BikeGame({ running, onClose }) {
+  const wrapRef = useRef(null);
+  const canvasRef = useRef(null);
+  const [gameOver, setGameOver] = useState(false);
+  const [score, setScore] = useState(0);
+  const [best, setBest] = useState(() => {
+    try { return Number(sessionStorage.getItem("bikeGameBest") || 0); }
+    catch (e) { return 0; }
+  });
+
+  const stateRef = useRef(null);
+  const inputRef = useRef({ gas: false, brake: false });
+  const gameOverRef = useRef(false);
+  const runningRef = useRef(running);
+  runningRef.current = running;
+
+  const buildState = useCallback((W, H) => {
+    const step = Math.max(170, W * 0.5);
+    const center = H * 0.6;
+    const minY = H * 0.42;
+    const maxY = H * 0.82;
+    const pts = [];
+    /* two flat lead-in points so the start is calm */
+    pts.push({ x: -step, y: center });
+    pts.push({ x: 0, y: center });
+    let y = center;
+    for (let i = 1; i <= 6; i++) {
+      y += (Math.random() - 0.5) * H * 0.34;
+      y = Math.min(maxY, Math.max(minY, y));
+      pts.push({ x: i * step, y });
+    }
+    const baseMaxV = Math.min(13, W * 0.011) * BIKE_CFG.BASE_BOOST;
+    return {
+      pts, step, center, minY, maxY, W, H,
+      x: 0, y: center, vx: baseMaxV * 0.55, vy: 0,
+      angle: 0, onGround: true,
+      baseMaxV,
+      maxV: baseMaxV,
+      speedScale: 1,
+      elapsed: 0,
+      bikeScreenX: W * 0.32,
+      R: Math.max(11, H * 0.024),
+      cacti: [],
+      nextCactusX: W * 1.4,
+      lastScore: 0
+    };
+  }, []);
+
+  const ensureTerrain = useCallback((uptoWorldX) => {
+    const s = stateRef.current;
+    if (!s) return;
+    let last = s.pts[s.pts.length - 1];
+    while (last.x < uptoWorldX) {
+      let y = last.y + (Math.random() - 0.5) * s.H * 0.36;
+      y = Math.min(s.maxY, Math.max(s.minY, y));
+      s.pts.push({ x: last.x + s.step, y });
+      last = s.pts[s.pts.length - 1];
+    }
+    /* sprinkle cactus obstacles on the ground ahead */
+    while (s.nextCactusX < uptoWorldX) {
+      const sizeF = 0.85 + Math.random() * 0.95;
+      s.cacti.push({
+        x: s.nextCactusX,
+        w: s.R * 0.9 * sizeF,
+        h: s.R * 2.6 * sizeF
+      });
+      s.nextCactusX += 340 + Math.random() * 620;
+    }
+  }, []);
+
+  const catmull = (p0, p1, p2, p3, t) => {
+    const t2 = t * t, t3 = t2 * t;
+    return 0.5 * ((2 * p1) +
+      (-p0 + p2) * t +
+      (2 * p0 - 5 * p1 + 4 * p2 - p3) * t2 +
+      (-p0 + 3 * p1 - 3 * p2 + p3) * t3);
+  };
+
+  const terrainYAt = useCallback((worldX) => {
+    const s = stateRef.current;
+    if (!s) return 0;
+    const pts = s.pts;
+    /* locate segment (uniform spacing => direct index) */
+    let i = Math.floor((worldX - pts[0].x) / s.step) + 0;
+    i = Math.max(1, Math.min(pts.length - 3, i));
+    const p1 = pts[i], p2 = pts[i + 1];
+    const p0 = pts[i - 1], p3 = pts[i + 2] || p2;
+    const span = p2.x - p1.x || 1;
+    const t = Math.max(0, Math.min(1, (worldX - p1.x) / span));
+    return catmull(p0.y, p1.y, p2.y, p3.y, t);
+  }, []);
+
+  const slopeAngleAt = useCallback((worldX) => {
+    const d = 8;
+    return Math.atan2(terrainYAt(worldX + d) - terrainYAt(worldX - d), 2 * d);
+  }, [terrainYAt]);
+
+  const angDiff = (a, b) => {
+    let d = a - b;
+    while (d > Math.PI) d -= 2 * Math.PI;
+    while (d < -Math.PI) d += 2 * Math.PI;
+    return d;
+  };
+
+  const startCrash = useCallback(() => {
+    if (gameOverRef.current) return;
+    gameOverRef.current = true;
+    setGameOver(true);
+    const s = stateRef.current;
+    const finalScore = s ? Math.floor(s.x / 50) : 0;
+    setBest((prev) => {
+      const next = Math.max(prev, finalScore);
+      try { sessionStorage.setItem("bikeGameBest", String(next)); } catch (e) {}
+      return next;
+    });
+  }, []);
+
+  const resetGame = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const W = canvas.clientWidth || window.innerWidth;
+    const H = canvas.clientHeight || window.innerHeight;
+    stateRef.current = buildState(W, H);
+    gameOverRef.current = false;
+    setGameOver(false);
+    setScore(0);
+  }, [buildState]);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    const cs = getComputedStyle(document.documentElement);
+    const accent = (cs.getPropertyValue("--accent") || "#F59425").trim();
+    const ink = (cs.getPropertyValue("--ink") || "#000").trim();
+    const bg = (cs.getPropertyValue("--bg") || "#faf9f7").trim();
+
+    const hexToRgb = (hex) => {
+      const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex.trim());
+      return m ? [parseInt(m[1], 16), parseInt(m[2], 16), parseInt(m[3], 16)] : [245, 148, 37];
+    };
+    const [ar, ag, ab] = hexToRgb(accent);
+    /* deterministic float hash for stable parallax mountains */
+    const frand = (n) => {
+      const v = Math.sin(n * 127.1) * 43758.5453;
+      return v - Math.floor(v);
+    };
+    /* 3 parallax mountain layers: [parallax, horizon ratio, amplitude ratio, spacing, alpha] */
+    const MOUNTAIN_LAYERS = [
+      { par: 0.12, horizon: 0.50, amp: 0.30, spacing: 150, alpha: 0.10, seed: 11.3 },
+      { par: 0.26, horizon: 0.56, amp: 0.34, spacing: 200, alpha: 0.16, seed: 41.7 },
+      { par: 0.44, horizon: 0.62, amp: 0.40, spacing: 270, alpha: 0.24, seed: 73.1 }
+    ];
+
+    const fitCanvas = () => {
+      const dpr = Math.min(2, window.devicePixelRatio || 1);
+      const W = window.innerWidth, H = window.innerHeight;
+      canvas.style.width = W + "px";
+      canvas.style.height = H + "px";
+      canvas.width = Math.round(W * dpr);
+      canvas.height = Math.round(H * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      if (stateRef.current) {
+        stateRef.current.W = W;
+        stateRef.current.H = H;
+        stateRef.current.bikeScreenX = W * 0.32;
+        stateRef.current.baseMaxV = Math.min(13, W * 0.011) * BIKE_CFG.BASE_BOOST;
+      }
+    };
+    fitCanvas();
+    resetGame();
+    window.addEventListener("resize", fitCanvas);
+
+    const hash = (k) => {
+      let h = (k * 2654435761) >>> 0;
+      return h / 4294967295;
+    };
+
+    const drawTuft = (sx, sy) => {
+      ctx.strokeStyle = accent;
+      ctx.globalAlpha = 0.55;
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.moveTo(sx, sy); ctx.lineTo(sx - 3, sy - 8);
+      ctx.moveTo(sx, sy); ctx.lineTo(sx, sy - 11);
+      ctx.moveTo(sx, sy); ctx.lineTo(sx + 3, sy - 8);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    };
+
+    const drawMountains = (camX, W, H) => {
+      MOUNTAIN_LAYERS.forEach((L) => {
+        const off = camX * L.par;
+        const horizonY = H * L.horizon;
+        const amp = H * L.amp;
+        const k0 = Math.floor(off / L.spacing) - 1;
+        const k1 = Math.floor((off + W) / L.spacing) + 1;
+        ctx.beginPath();
+        ctx.moveTo((k0 * L.spacing) - off, H);
+        for (let k = k0; k <= k1; k++) {
+          const sx = (k * L.spacing) - off;
+          const peakY = horizonY - (0.4 + 0.6 * frand(k + L.seed)) * amp;
+          const midX = sx + L.spacing / 2;
+          const valleyY = horizonY - (0.05 + 0.22 * frand(k * 1.7 + L.seed)) * amp;
+          ctx.lineTo(sx, peakY);
+          ctx.lineTo(midX, valleyY);
+        }
+        ctx.lineTo((k1 * L.spacing) - off, H);
+        ctx.closePath();
+        ctx.fillStyle = `rgba(${ar}, ${ag}, ${ab}, ${L.alpha})`;
+        ctx.fill();
+      });
+    };
+
+    const drawCactus = (c, camX) => {
+      const sx = c.x - camX;
+      const gY = terrainYAt(c.x);
+      const w = c.w, h = c.h;
+      ctx.save();
+      ctx.translate(sx, gY);
+      ctx.strokeStyle = BIKE_CFG.CACTUS_COLOR;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.lineWidth = w;
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(0, -h);
+      ctx.stroke();
+      ctx.lineWidth = w * 0.72;
+      ctx.beginPath();
+      ctx.moveTo(0, -h * 0.5);
+      ctx.lineTo(-w * 1.15, -h * 0.5);
+      ctx.lineTo(-w * 1.15, -h * 0.8);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(0, -h * 0.64);
+      ctx.lineTo(w * 1.15, -h * 0.64);
+      ctx.lineTo(w * 1.15, -h * 0.95);
+      ctx.stroke();
+      ctx.restore();
+    };
+
+    const update = (dt) => {
+      const s = stateRef.current;
+      const inp = inputRef.current;
+
+      /* gradual speed-up over time */
+      s.elapsed += dt;
+      s.speedScale = Math.min(BIKE_CFG.MAX_SCALE, 1 + s.elapsed * BIKE_CFG.SPEED_RAMP);
+      s.maxV = s.baseMaxV * s.speedScale;
+      const cruiseV = s.maxV * 0.7;
+
+      if (s.vx < cruiseV) s.vx += BIKE_CFG.AUTO_ACCEL * dt;
+      if (inp.gas) s.vx += BIKE_CFG.ACCEL * dt;
+      if (inp.brake) s.vx -= BIKE_CFG.BRAKE * dt;
+      s.vx *= Math.pow(BIKE_CFG.FRICTION, dt);
+      s.vx = Math.max(0, Math.min(s.maxV, s.vx));
+      s.vy += BIKE_CFG.GRAVITY * dt;
+      s.x += s.vx * dt;
+      s.y += s.vy * dt;
+      ensureTerrain(s.x + s.W * 2);
+
+      /* cactus collision — any contact ends the run */
+      while (s.cacti.length && s.cacti[0].x < s.x - s.W) s.cacti.shift();
+      const bikeHalfW = s.R * 2.4;
+      for (let ci = 0; ci < s.cacti.length; ci++) {
+        const c = s.cacti[ci];
+        if (c.x + c.w * 1.15 < s.x - bikeHalfW) continue;
+        if (c.x - c.w * 1.15 > s.x + bikeHalfW) break;
+        const cactusTop = terrainYAt(c.x) - c.h;
+        if (s.y > cactusTop) { startCrash(); return; }
+      }
+
+      const ground = terrainYAt(s.x);
+      const tAngle = slopeAngleAt(s.x);
+      if (s.y >= ground) {
+        if (!s.onGround) {
+          if (Math.abs(angDiff(s.angle, tAngle)) > BIKE_CFG.CRASH_ANGLE) {
+            startCrash();
+            return;
+          }
+        }
+        s.y = ground;
+        s.vy = 0;
+        s.onGround = true;
+        s.vx += Math.sin(tAngle) * BIKE_CFG.SLOPE_ACC * dt;
+        s.vx = Math.max(0, Math.min(s.maxV, s.vx));
+        s.angle += angDiff(tAngle, s.angle) * Math.min(1, 0.4 * dt);
+      } else {
+        s.onGround = false;
+        const target = Math.atan2(s.vy, Math.max(s.vx, 0.001));
+        s.angle += angDiff(target, s.angle) * Math.min(1, 0.08 * dt);
+      }
+      if (Math.abs(s.angle) > BIKE_CFG.FLIP_ANGLE) {
+        startCrash();
+        return;
+      }
+    };
+
+    const drawBike = (s) => {
+      const R = s.R;
+      const base = R * 2.7;
+      ctx.save();
+      ctx.translate(s.bikeScreenX, s.y);
+      ctx.rotate(s.angle);
+      ctx.strokeStyle = ink;
+      ctx.fillStyle = ink;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      const lw = Math.max(2, R * 0.28);
+
+      /* wheels */
+      ctx.lineWidth = lw;
+      [-base / 2, base / 2].forEach((wx) => {
+        ctx.beginPath();
+        ctx.arc(wx, -R, R, 0, Math.PI * 2);
+        ctx.stroke();
+      });
+
+      /* frame */
+      ctx.beginPath();
+      ctx.moveTo(-base / 2, -R);
+      ctx.lineTo(0, -R * 1.9);
+      ctx.lineTo(base / 2, -R);
+      ctx.moveTo(0, -R * 1.9);
+      ctx.lineTo(base * 0.28, -R * 2.0);
+      ctx.stroke();
+
+      /* rider — wedge body + head */
+      ctx.beginPath();
+      ctx.moveTo(-R * 0.2, -R * 1.95);
+      ctx.lineTo(R * 0.5, -R * 3.0);
+      ctx.lineTo(R * 0.95, -R * 2.0);
+      ctx.closePath();
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(R * 0.55, -R * 3.35, R * 0.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    };
+
+    const draw = () => {
+      const s = stateRef.current;
+      if (!s) return;
+      const W = s.W, H = s.H;
+      ctx.clearRect(0, 0, W, H);
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, W, H);
+
+      const camX = s.x - s.bikeScreenX;
+      ensureTerrain(camX + W * 1.5);
+
+      /* parallax mountain range behind everything */
+      drawMountains(camX, W, H);
+
+      /* terrain fill + line */
+      const SAMPLE = 6;
+      ctx.beginPath();
+      ctx.moveTo(0, terrainYAt(camX));
+      for (let sx = 0; sx <= W; sx += SAMPLE) {
+        ctx.lineTo(sx, terrainYAt(camX + sx));
+      }
+      ctx.lineTo(W, H);
+      ctx.lineTo(0, H);
+      ctx.closePath();
+      ctx.fillStyle = accent;
+      ctx.globalAlpha = 0.16;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+
+      ctx.beginPath();
+      ctx.moveTo(0, terrainYAt(camX));
+      for (let sx = 0; sx <= W; sx += SAMPLE) {
+        ctx.lineTo(sx, terrainYAt(camX + sx));
+      }
+      ctx.strokeStyle = accent;
+      ctx.lineWidth = 3.5;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.stroke();
+
+      /* sparse tufts */
+      const k0 = Math.floor(camX / 150);
+      const k1 = Math.floor((camX + W) / 150);
+      for (let k = k0; k <= k1; k++) {
+        if (hash(k) > 0.62) {
+          const wx = k * 150 + 40;
+          drawTuft(wx - camX, terrainYAt(wx));
+        }
+      }
+
+      /* cactus obstacles sitting on the ground */
+      for (let ci = 0; ci < s.cacti.length; ci++) {
+        const c = s.cacti[ci];
+        const sx = c.x - camX;
+        if (sx < -40 || sx > W + 40) continue;
+        drawCactus(c, camX);
+      }
+
+      drawBike(s);
+    };
+
+    let last = performance.now();
+    let raf;
+    const tick = (now) => {
+      let dt = (now - last) / 16.667;
+      last = now;
+      if (dt > 2.5) dt = 2.5;
+      if (runningRef.current && !gameOverRef.current && stateRef.current) {
+        update(dt);
+        const s = stateRef.current;
+        if (s) {
+          const sc = Math.floor(s.x / 50);
+          if (sc !== s.lastScore) { s.lastScore = sc; setScore(sc); }
+        }
+      }
+      draw();
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") { onClose(); return; }
+      if (e.key === "ArrowRight" || e.key === " " || e.code === "Space") {
+        inputRef.current.gas = true; e.preventDefault();
+      }
+      if (e.key === "ArrowLeft") { inputRef.current.brake = true; e.preventDefault(); }
+    };
+    const onKeyUp = (e) => {
+      if (e.key === "ArrowRight" || e.key === " " || e.code === "Space") inputRef.current.gas = false;
+      if (e.key === "ArrowLeft") inputRef.current.brake = false;
+    };
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("keyup", onKeyUp);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("resize", fitCanvas);
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("keyup", onKeyUp);
+    };
+  }, [resetGame, ensureTerrain, terrainYAt, slopeAngleAt, startCrash, onClose]);
+
+  const press = (key, val) => () => { inputRef.current[key] = val; };
+
+  return (
+    <div ref={wrapRef} className="bike-game">
+      <canvas ref={canvasRef} className="bike-game__canvas" />
+
+      <div className="bike-game__hud">
+        <span className="bike-game__score">{score}<small> m</small></span>
+        <span className="bike-game__best">best {best} m</span>
+      </div>
+
+      <button className="bike-game__exit-btn" onClick={onClose} aria-label="Exit game">
+        &times;
+      </button>
+
+      {!gameOver &&
+        <div className="bike-game__controls">
+          <button
+            className="bike-game__ctrl bike-game__ctrl--brake"
+            onPointerDown={press("brake", true)}
+            onPointerUp={press("brake", false)}
+            onPointerLeave={press("brake", false)}
+            aria-label="Brake"
+          >BRAKE</button>
+          <button
+            className="bike-game__ctrl bike-game__ctrl--gas"
+            onPointerDown={press("gas", true)}
+            onPointerUp={press("gas", false)}
+            onPointerLeave={press("gas", false)}
+            aria-label="Accelerate"
+          >GAS</button>
+        </div>}
+
+      {!gameOver && running &&
+        <p className="bike-game__hint">Hold <b>GAS</b> / <b>&rarr;</b> to ride &middot; <b>&larr;</b> to brake &middot; <b>Esc</b> to exit</p>}
+
+      {gameOver &&
+        <div className="bike-game__over">
+          <p className="bike-game__over-title">GAME OVER</p>
+          <p className="bike-game__over-score">{score} m</p>
+          <p className="bike-game__over-best">best {best} m</p>
+          <div className="bike-game__over-actions">
+            <button className="bike-game__btn bike-game__btn--primary" onClick={resetGame}>Play again</button>
+            <button className="bike-game__btn" onClick={onClose}>Exit</button>
+          </div>
+        </div>}
+    </div>
+  );
 }
 
 function LandingHero({ setView }) {
   const shellRef = useRef(null);
   const nameRef = useRef(null);
+  const graphRef = useRef(null);
+  const [gamePhase, setGamePhase] = useState("idle"); /* idle | zooming | playing */
+  const [graphRect, setGraphRect] = useState(null);
   useFitWidthText(nameRef, shellRef, {
     minPx: 24,
     maxPxCap: 160,
@@ -652,6 +1241,19 @@ function LandingHero({ setView }) {
   const scrollToWork = () => {
     const el = document.getElementById("work");
     if (el) window.scrollTo({ top: el.offsetTop - 20, behavior: "smooth" });
+  };
+
+  const startGame = () => {
+    if (gamePhase !== "idle") return;
+    const el = graphRef.current;
+    setGraphRect(el ? el.getBoundingClientRect() : null);
+    setGamePhase("zooming");
+    window.setTimeout(() => setGamePhase("playing"), 550);
+  };
+
+  const closeGame = () => {
+    setGamePhase("idle");
+    setGraphRect(null);
   };
   return (
     <section className="landing-hero" style={{
@@ -702,8 +1304,8 @@ function LandingHero({ setView }) {
             alignSelf: "start",
             minWidth: 0
           }}>
-            <div className="landing-top__graph" style={{ minHeight: 0 }}>
-              <MiniLineGraph />
+            <div ref={graphRef} className="landing-top__graph" style={{ minHeight: 0 }}>
+              <MiniLineGraph onGameStart={startGame} />
             </div>
 
             <p className="landing-top__tagline-headline" style={{
@@ -741,6 +1343,8 @@ function LandingHero({ setView }) {
         </div>
         </div>
       </div>
+      {gamePhase !== "idle" &&
+        <BikeGameOverlay phase={gamePhase} originRect={graphRect} onClose={closeGame} />}
     </section>);
 
 }
@@ -4463,6 +5067,160 @@ styleEl.textContent = `
     .fovere-story__cutout-img.fovere-story__step-img {
       max-height: 58vh !important;
     }
+  }
+
+  /* ---- Bike game (landing line Easter egg) ---- */
+  .bike-game-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9000;
+    background: var(--bg);
+    overflow: hidden;
+    will-change: clip-path;
+    transition: clip-path 0.52s cubic-bezier(0.76, 0, 0.24, 1);
+  }
+  .bike-game { position: absolute; inset: 0; }
+  .bike-game__canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    touch-action: none;
+  }
+  .bike-game__hud {
+    position: absolute;
+    top: clamp(16px, 3vw, 34px);
+    left: clamp(16px, 4vw, 48px);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    pointer-events: none;
+    font-family: var(--font-body);
+    color: var(--ink);
+  }
+  .bike-game__score {
+    font-size: clamp(2rem, 5vw, 3.4rem);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1;
+  }
+  .bike-game__score small { font-size: 0.4em; font-weight: 600; color: var(--ink-2); }
+  .bike-game__best {
+    font-size: clamp(0.7rem, 1.4vw, 0.9rem);
+    color: var(--ink-3);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .bike-game__exit-btn {
+    position: absolute;
+    top: clamp(14px, 2.6vw, 28px);
+    right: clamp(14px, 3.4vw, 40px);
+    width: clamp(38px, 5vw, 52px);
+    height: clamp(38px, 5vw, 52px);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--surface);
+    color: var(--ink);
+    font-size: clamp(1.3rem, 2.6vw, 1.8rem);
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.3s ease, border-color 0.3s ease, transform 0.3s ease;
+  }
+  .bike-game__exit-btn:hover { color: var(--accent); border-color: var(--accent); transform: rotate(90deg); }
+  .bike-game__controls {
+    position: absolute;
+    bottom: clamp(18px, 4vw, 44px);
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    gap: clamp(14px, 3vw, 28px);
+    padding: 0 clamp(16px, 4vw, 48px);
+  }
+  .bike-game__ctrl {
+    flex: 0 0 auto;
+    min-width: clamp(120px, 20vw, 200px);
+    padding: clamp(14px, 1.8vw, 22px) clamp(20px, 3vw, 36px);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: var(--surface);
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    font-size: clamp(0.85rem, 1.6vw, 1.05rem);
+    cursor: pointer;
+    user-select: none;
+    touch-action: none;
+    transition: background 0.12s ease, color 0.12s ease, transform 0.08s ease;
+  }
+  .bike-game__ctrl:active { transform: translateY(2px); }
+  .bike-game__ctrl--gas:active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .bike-game__ctrl--brake:active { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+  .bike-game__hint {
+    position: absolute;
+    bottom: clamp(96px, 13vw, 130px);
+    left: 0; right: 0;
+    margin: 0;
+    text-align: center;
+    font-family: var(--font-body);
+    font-size: clamp(0.72rem, 1.4vw, 0.92rem);
+    color: var(--ink-3);
+    pointer-events: none;
+  }
+  .bike-game__hint b { color: var(--ink-2); font-weight: 700; }
+  .bike-game__over {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    background: color-mix(in oklch, var(--bg) 78%, transparent);
+    backdrop-filter: blur(3px);
+    font-family: var(--font-body);
+    color: var(--ink);
+    animation: bikeOverIn 0.3s ease both;
+  }
+  @keyframes bikeOverIn { from { opacity: 0; } to { opacity: 1; } }
+  .bike-game__over-title {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: clamp(2.2rem, 7vw, 5rem);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  .bike-game__over-score { margin: 8px 0 0; font-size: clamp(1.4rem, 3vw, 2.2rem); font-weight: 800; }
+  .bike-game__over-best {
+    margin: 0 0 18px;
+    font-size: clamp(0.8rem, 1.6vw, 1rem);
+    color: var(--ink-3);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .bike-game__over-actions { display: flex; gap: 12px; }
+  .bike-game__btn {
+    padding: 12px 26px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--surface);
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-weight: 700;
+    font-size: clamp(0.85rem, 1.6vw, 1rem);
+    cursor: pointer;
+    transition: color 0.25s ease, border-color 0.25s ease, background 0.25s ease;
+  }
+  .bike-game__btn:hover { color: var(--accent); border-color: var(--accent); }
+  .bike-game__btn--primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .bike-game__btn--primary:hover { color: #fff; filter: brightness(1.06); }
+  @media (prefers-reduced-motion: reduce) {
+    .bike-game-overlay { transition-duration: 0.01s; }
   }
 `;
 document.head.appendChild(styleEl);

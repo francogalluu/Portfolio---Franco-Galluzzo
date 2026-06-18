@@ -332,5 +332,21 @@
     "featured": true,
     "category": "ux",
     "logo": "assets/about me/Google.png"
+  },
+  {
+    "degree": "Claude 101",
+    "school": "Anthropic",
+    "issued": "Jun 2026",
+    "featured": true,
+    "category": "data",
+    "logo": "assets/about me/anthropic logo.png"
+  },
+  {
+    "degree": "AI Fluency: Framework & Foundations",
+    "school": "Anthropic",
+    "issued": "Jun 2026",
+    "featured": true,
+    "category": "data",
+    "logo": "assets/about me/anthropic logo.png"
   }
 ]
