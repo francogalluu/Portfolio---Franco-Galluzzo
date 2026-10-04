@@ -2343,11 +2343,6 @@ const D90_LAYOUT_GROUPS = [
   { cols: [[{ ar: "1.506" }]] },
 ];
 
-const PHOTO_CAMERAS = [
-  { id: "sony", src: "assets/sony-cybershot-camera.png", label: "Sony Cyber-shot DSC-W320", editable: true },
-  { id: "nikon", src: "assets/nikon-d90-camera.png", label: "Nikon D90", images: D90_IMAGES, layout: D90_LAYOUT_GROUPS }
-];
-const PHOTO_NAV = PHOTO_CAMERAS.map((c) => c.label);
 
 const CAMARITA_IMAGES = [
   "Images_camarita/DSC02823.JPG",
@@ -2370,6 +2365,30 @@ const CAMARITA_IMAGES = [
   "Images_camarita/DSC03658.JPG",
   "Images_camarita/DSC03883.JPG",
 ];
+
+/* Real aspect ratio of each D90 photo, so a frame keeps its proportions when the photo is moved in the editor. */
+const D90_ASPECTS = {
+  "Images_d90/DSC_0482.jpg": 1.506,
+  "Images_d90/DSC_0519.jpg": 1.506,
+  "Images_d90/DSC_0598.jpg": 0.664,
+  "Images_d90/DSC_0578.jpg": 0.664,
+  "Images_d90/DSC_0546.jpg": 1.506,
+  "Images_d90/DSC_0608.jpg": 1.507,
+  "Images_d90/DSC_0602.jpg": 1.506,
+  "Images_d90/DSC_0614.jpg": 1.506,
+  "Images_d90/DSC_0669.jpg": 1.506,
+  "Images_d90/DSC_0672.jpg": 1.506,
+  "Images_d90/DSC_0675.jpg": 1.209,
+  "Images_d90/DSC_0677.jpg": 1.506,
+  "Images_d90/DSC_0678.jpg": 1.506,
+  "Images_d90/DSC_0680.jpg": 1.506,
+};
+
+const PHOTO_CAMERAS = [
+  { id: "sony", src: "assets/sony-cybershot-camera.png", label: "Sony Cyber-shot DSC-W320", images: CAMARITA_IMAGES },
+  { id: "nikon", src: "assets/nikon-d90-camera.png", label: "Nikon D90", images: D90_IMAGES, layout: D90_LAYOUT_GROUPS, aspects: D90_ASPECTS }
+];
+const PHOTO_NAV = PHOTO_CAMERAS.map((c) => c.label);
 
 const PHOTO_LAYOUT_GROUPS = [
   {
@@ -2530,6 +2549,16 @@ function buildPhotoGroups(images) {
   return assignPhotoSources(PHOTO_LAYOUT_GROUPS, images);
 }
 
+function buildCameraGroups(camera, images) {
+  if (!camera.layout) return buildPhotoGroups(images);
+  const groups = assignPhotoSources(camera.layout, images);
+  if (!camera.aspects) return groups;
+  return groups.map((g) => ({
+    ...g,
+    cols: g.cols.map((col) => col.map((p) => ({ ...p, ar: String(camera.aspects[p.src] ?? p.ar) })))
+  }));
+}
+
 function flattenPhotoList(groups) {
   return groups.flatMap((group) => group.cols.flatMap((col) => col));
 }
@@ -2675,7 +2704,15 @@ function PhotoGalleryFrame({ photo, colLength, runtimeEdits }) {
             e.currentTarget.src = photo.src;
           }
         }}
-        style={{ width: "100%", height: "100%", display: "block" }}
+        style={photo.src.startsWith("Images_d90/") ? (() => {
+          const e = effectivePhotoEdit(photo, null);
+          const zoom = e.zoom ?? 1;
+          return {
+            width: "100%", height: "100%", display: "block", objectFit: "cover",
+            objectPosition: `${e.posX}% ${e.posY}%`,
+            ...(zoom !== 1 ? { transform: `scale(${zoom})`, transformOrigin: `${e.posX}% ${e.posY}%` } : null)
+          };
+        })() : { width: "100%", height: "100%", display: "block" }}
       />
     </div>
   );
@@ -3026,20 +3063,13 @@ function PhotoCameraPicker({ cameras, activeIndex, onChange }) {
     </div>);
 }
 
-function PhotographyView({ photoGroups, photoEdits, selectedPhotoSrc, photoPickMode, onSelectPhoto, photoGalleryStyle }) {
+function PhotographyView({ photoGroups, photoEdits, selectedPhotoSrc, photoPickMode, onSelectPhoto, photoGalleryStyle, cameraIndex, onCameraChange }) {
   const scrollRef = useRef(null);
   const smoothRef = useRef({ target: null, raf: null });
   const [lightboxSrc, setLightboxSrc] = useState(null);
-  const [cameraIndex, setCameraIndex] = useState(0);
-  const activeCamera = PHOTO_CAMERAS[cameraIndex];
-  /* the edit tools only know about the Sony set */
-  const pickMode = photoPickMode && !!activeCamera.editable;
+  const pickMode = photoPickMode;
   const showSmoothEye = !pickMode;
-  const cameraGroups = useMemo(
-    () => PHOTO_CAMERAS.map((c) => c.layout ? assignPhotoSources(c.layout, c.images) : null),
-    []
-  );
-  const activeGroups = activeCamera.layout ? cameraGroups[cameraIndex] : photoGroups;
+  const activeGroups = photoGroups;
   const openLightbox = useCallback((src) => setLightboxSrc(src), []);
   const closeLightbox = useCallback(() => setLightboxSrc(null), []);
   const reducedMotion = useRef(
@@ -3092,14 +3122,14 @@ function PhotographyView({ photoGroups, photoEdits, selectedPhotoSrc, photoPickM
 
   const selectCamera = useCallback((i) => {
     if (i < 0 || i >= PHOTO_CAMERAS.length) return;
-    setCameraIndex(i);
+    onCameraChange(i);
     const el = scrollRef.current;
     if (el) {
       stopSmooth();
       smoothRef.current.target = null;
       el.scrollLeft = 0;
     }
-  }, [stopSmooth]);
+  }, [stopSmooth, onCameraChange]);
 
   /* up / down arrow keys switch camera */
   useEffect(() => {
@@ -3335,6 +3365,7 @@ function photoFileName(src) {
 }
 
 function PhotoEditorPanel({
+  camera,
   galleryImages,
   setGalleryImages,
   photoList,
@@ -3468,8 +3499,10 @@ function PhotoEditorPanel({
       </div>
       <div className="photo-editor-panel__body">
         <p className="photo-editor-panel__hint">
-          Frames fill the screen below the header. Adjust crop, then copy edits and run
-          <code style={{ fontSize: "10px" }}> npm run bake-photos</code> to save real crops.
+          {camera?.layout ?
+          <>Editing <b>{camera.label}</b>. Adjust crop and order, then use "Copy all edits" / "Copy gallery order" to save them.</> :
+          <>Frames fill the screen below the header. Adjust crop, then copy edits and run
+          <code style={{ fontSize: "10px" }}> npm run bake-photos</code> to save real crops.</>}
         </p>
         <TweakToggle label="Click photo to select" value={photoPickMode}
           onChange={setPhotoPickMode} />
@@ -3958,8 +3991,19 @@ function App() {
   const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
   const [view, setView] = useState("Projects");
   const [activeProject, setActiveProject] = useState(null);
-  const [galleryImages, setGalleryImages] = useState(CAMARITA_IMAGES);
+  const [cameraIndex, setCameraIndex] = useState(0);
+  const [galleryByCamera, setGalleryByCamera] = useState(() =>
+    Object.fromEntries(PHOTO_CAMERAS.map((c) => [c.id, c.images])));
   const [selectedPhotoSrc, setSelectedPhotoSrc] = useState(CAMARITA_IMAGES[0]);
+  const activeCamera = PHOTO_CAMERAS[cameraIndex];
+  const galleryImages = galleryByCamera[activeCamera.id];
+  const setGalleryImages = useCallback((next) => {
+    setGalleryByCamera((prev) => ({ ...prev, [activeCamera.id]: next }));
+  }, [activeCamera.id]);
+  const changeCamera = useCallback((i) => {
+    setCameraIndex(i);
+    setSelectedPhotoSrc(galleryByCamera[PHOTO_CAMERAS[i].id][0]);
+  }, [galleryByCamera]);
   const [photoEdits, setPhotoEdits] = useState({});
   const [photoPickMode, setPhotoPickMode] = useState(false);
   const [photoGalleryStyle, setPhotoGalleryStyle] = useState(PHOTO_GALLERY_STYLE_DEFAULTS);
@@ -3967,8 +4011,8 @@ function App() {
   viewRef.current = view;
 
   const photoGroups = useMemo(
-    () => buildPhotoGroups(galleryImages),
-    [galleryImages]
+    () => buildCameraGroups(activeCamera, galleryImages),
+    [activeCamera, galleryImages]
   );
   const photoList = useMemo(
     () => flattenPhotoList(photoGroups),
@@ -4151,6 +4195,8 @@ function App() {
           photoPickMode={photoPickMode}
           onSelectPhoto={setSelectedPhotoSrc}
           photoGalleryStyle={photoGalleryStyle}
+          cameraIndex={cameraIndex}
+          onCameraChange={changeCamera}
         />
         }
         {view === "About" && <AboutView />}
@@ -4164,6 +4210,7 @@ function App() {
 
       {view === "Photography" && photoPickMode &&
       <PhotoEditorPanel
+        camera={activeCamera}
         galleryImages={galleryImages}
         setGalleryImages={setGalleryImages}
         photoList={photoList}
