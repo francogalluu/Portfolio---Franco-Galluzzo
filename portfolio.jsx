@@ -60,6 +60,45 @@ const LANDING_TAGLINE = {
 const PROJECTS = [
 {
   n: "01",
+  slug: "simul",
+  title: "Simul",
+  year: "2026",
+  topic: "Mobile App",
+  meta: "Shared habits · iOS · 2026",
+  blurb: "I built Simul, an iOS habit tracker for two: shared routines, photo proof, and a partner who keeps you honest.",
+  label: "mobile app",
+  icon: "assets/simul-icon.png",
+  hero: "assets/simul-hero.png",
+  hero2x: "assets/simul-hero.png",
+  detailHero: "assets/simul-detail-hero.png",
+  detailIntro: [
+    "After building Fovere, I kept noticing the same thing: habits stick better when someone else is in on them. Most habit trackers treat that as an afterthought, so I built one around it. Simul is made for exactly two people, and everything in the app is shared by design.",
+    "I designed and built it on React Native and Expo for iOS, with Supabase handling sign-in, private data, and real-time sync between both phones. The walkthrough below follows a normal day: what you do together, what you do alone, and how you prove it."
+  ],
+  tagline: "Build habits, together",
+  intro: "Simul is a habit tracker for two. Create a household with your partner, keep shared habits next to your own, and attach a photo as proof when you complete one. Your partner approves it with a tap.",
+  sections: [
+    {
+      title: "Home",
+      body: "One screen shows you, your partner, and the habits you share. Each person has their own section, and a Together section holds the habits you do as a pair."
+    },
+    {
+      title: "Flexible routines",
+      body: "Set exact days of the week, or a number of times per week, and let the rest of the week stay open."
+    },
+    {
+      title: "Proof of work",
+      body: "Turn on proof for any habit. When you complete it, you attach a photo and your partner confirms it before it counts."
+    },
+    {
+      title: "Achievements and stats",
+      body: "Earn badges for showing up, and see streaks, your best run, and 30-day consistency for every habit."
+    }
+  ],
+  closing: "Simul is coming soon to the App Store."
+},
+{
+  n: "02",
   slug: "fovere",
   title: "Fovere",
   year: "2026",
@@ -112,7 +151,7 @@ const PROJECTS = [
   appStoreUrl: "https://apps.apple.com/us/app/fovere-habit-tracker/id6761730532"
 },
 {
-  n: "02",
+  n: "03",
   slug: "sportaz",
   title: "Sportaz",
   year: "2024",
@@ -1628,6 +1667,44 @@ function ProjectCard({ p, indexed, onOpen, cardRef, showBlurb = true, className 
    Project detail — scroll story (sticky image, scrolling text)
    ============================================================ */
 const PROJECT_STORY = {
+  simul: [
+  {
+    img: "assets/Simul_Screenshots/Device-1.png",
+    eyebrow: "Home",
+    title: "Your routine and theirs, at a glance",
+    body: "Simul opens on a single shared day. You and your partner each get your own section, and the habits you do together sit above both. A quick look tells you what is done, what is left, and who still has something to tick off."
+  },
+  {
+    img: "assets/Simul_Screenshots/Device-2.png",
+    eyebrow: "New habit · Weekly",
+    title: "A routine that fits your week",
+    body: "Pick exact days, or just say how many times a week you want to do it. Quick picks get you started in a tap, and a habit can be just yours or shared with your partner from the start."
+  },
+  {
+    img: "assets/Simul_Screenshots/Device-3.png",
+    eyebrow: "New habit · Shared",
+    title: "Make it count for both of you",
+    body: "Choose who a habit is for, set the days, and turn on proof of work. For shared habits, your partner is part of the loop from the first check-in."
+  },
+  {
+    img: "assets/Simul_Screenshots/Device-4.png",
+    eyebrow: "Proof",
+    title: "Proof it happened, approved with a tap",
+    body: "When a habit needs proof, you attach a photo as you complete it. Your partner sees it in a review sheet and either approves it or rejects it. Rejecting removes the completion, so you can try again."
+  },
+  {
+    img: "assets/Simul_Screenshots/Device-5.png",
+    eyebrow: "Achievements",
+    title: "Celebrate every win",
+    body: "Badges mark the moments that matter, from a first step to a perfect week. A few are secret, so there is always something left to find as you keep showing up."
+  },
+  {
+    img: "assets/Simul_Screenshots/Device-6.png",
+    eyebrow: "Stats",
+    title: "Watch your streaks grow",
+    body: "Every habit has its own stats: current streak, best streak, 30-day completion, and total check-ins, plus a consistency chart that shows what is working and what is slipping."
+  }
+  ],
   fovere: [
   {
     img: "assets/Fovere_Screenshots/Device.png",
@@ -2042,6 +2119,7 @@ function ProjectDetailView({ project, onBack }) {
 }
 
 const PROJECT_CURSOR_ICONS = {
+  simul:   "🤝",
   sportaz: "⚽",
   fovere:  "🌱"
 };
@@ -3830,6 +3908,7 @@ function App() {
   }, [view, activeProject, runTransition]);
 
   const PROJECT_FONTS = {
+    simul:   { fontFamily: '"Lora", Georgia, serif', fontWeight: 700, fontStyle: "normal" },
     fovere:  { fontFamily: '"Playfair Display", Georgia, serif', fontWeight: 700, fontStyle: "normal" },
     sportaz: { fontFamily: '"Montserrat", system-ui, sans-serif', fontWeight: 700, fontStyle: "italic" },
   };
