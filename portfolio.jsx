@@ -2314,9 +2314,38 @@ function ProjectsView({ layout, onOpenProject }) {
 /* ============================================================
    PHOTOGRAPHY  — horizontal collage, scroll-jacked
    ============================================================ */
+const D90_IMAGES = [
+  "Images_d90/DSC_0482.jpg",
+  "Images_d90/DSC_0519.jpg",
+  "Images_d90/DSC_0598.jpg",
+  "Images_d90/DSC_0578.jpg",
+  "Images_d90/DSC_0546.jpg",
+  "Images_d90/DSC_0608.jpg",
+  "Images_d90/DSC_0602.jpg",
+  "Images_d90/DSC_0614.jpg",
+  "Images_d90/DSC_0669.jpg",
+  "Images_d90/DSC_0672.jpg",
+  "Images_d90/DSC_0675.jpg",
+  "Images_d90/DSC_0677.jpg",
+  "Images_d90/DSC_0678.jpg",
+  "Images_d90/DSC_0680.jpg",
+];
+
+/* Frames use each photo's real aspect ratio (3:2 landscapes stack in pairs), so nothing is cropped. */
+const D90_LAYOUT_GROUPS = [
+  { cols: [[{ ar: "1.506" }, { ar: "1.506" }]] },
+  { cols: [[{ ar: "0.664" }], [{ ar: "0.664" }]] },
+  { cols: [[{ ar: "1.506" }, { ar: "1.506" }]] },
+  { cols: [[{ ar: "1.506" }, { ar: "1.506" }]] },
+  { cols: [[{ ar: "1.506" }, { ar: "1.506" }]] },
+  { cols: [[{ ar: "1.209" }]] },
+  { cols: [[{ ar: "1.506" }, { ar: "1.506" }]] },
+  { cols: [[{ ar: "1.506" }]] },
+];
+
 const PHOTO_CAMERAS = [
-  { id: "sony", src: "assets/sony-cybershot-camera.png", label: "Sony Cyber-shot DSC-W320", hasPhotos: true },
-  { id: "nikon", src: "assets/nikon-d90-camera.png", label: "Nikon D90", hasPhotos: false }
+  { id: "sony", src: "assets/sony-cybershot-camera.png", label: "Sony Cyber-shot DSC-W320", editable: true },
+  { id: "nikon", src: "assets/nikon-d90-camera.png", label: "Nikon D90", images: D90_IMAGES, layout: D90_LAYOUT_GROUPS }
 ];
 const PHOTO_NAV = PHOTO_CAMERAS.map((c) => c.label);
 
@@ -2582,6 +2611,7 @@ function buildClampHeight({ min, vh, max }) {
 }
 
 function photoWebSrc(src) {
+  if (src.startsWith("Images_d90/")) return src;
   return `Images_camarita/web/${src.split("/").pop()}`;
 }
 
@@ -2999,10 +3029,17 @@ function PhotoCameraPicker({ cameras, activeIndex, onChange }) {
 function PhotographyView({ photoGroups, photoEdits, selectedPhotoSrc, photoPickMode, onSelectPhoto, photoGalleryStyle }) {
   const scrollRef = useRef(null);
   const smoothRef = useRef({ target: null, raf: null });
-  const showSmoothEye = !photoPickMode;
   const [lightboxSrc, setLightboxSrc] = useState(null);
   const [cameraIndex, setCameraIndex] = useState(0);
   const activeCamera = PHOTO_CAMERAS[cameraIndex];
+  /* the edit tools only know about the Sony set */
+  const pickMode = photoPickMode && !!activeCamera.editable;
+  const showSmoothEye = !pickMode;
+  const cameraGroups = useMemo(
+    () => PHOTO_CAMERAS.map((c) => c.layout ? assignPhotoSources(c.layout, c.images) : null),
+    []
+  );
+  const activeGroups = activeCamera.layout ? cameraGroups[cameraIndex] : photoGroups;
   const openLightbox = useCallback((src) => setLightboxSrc(src), []);
   const closeLightbox = useCallback(() => setLightboxSrc(null), []);
   const reducedMotion = useRef(
@@ -3155,13 +3192,13 @@ function PhotographyView({ photoGroups, photoEdits, selectedPhotoSrc, photoPickM
           />
         </div>
 
-        {!activeCamera.hasPhotos && (
+        {activeGroups.length === 0 && (
           <div style={{ flexShrink: 0, alignSelf: "center", paddingLeft: "clamp(16px, 3vw, 48px)" }}>
             <Mono style={{ color: "var(--ink-3)" }}>Photos coming soon</Mono>
           </div>
         )}
 
-        {activeCamera.hasPhotos && photoGroups.map((group, gi) => (
+        {activeGroups.map((group, gi) => (
           <div
             key={gi}
             style={{
@@ -3180,10 +3217,10 @@ function PhotographyView({ photoGroups, photoEdits, selectedPhotoSrc, photoPickM
                     <button
                       key={pi}
                       type="button"
-                      className={`photo-frame${photoPickMode && selected ? " photo-frame--selected" : ""}`}
-                      aria-label={photoPickMode ? `Select ${photo.src.split("/").pop()}` : "View photo"}
-                      aria-pressed={photoPickMode ? selected : undefined}
-                      onClick={photoPickMode ? (e) => {
+                      className={`photo-frame${pickMode && selected ? " photo-frame--selected" : ""}`}
+                      aria-label={pickMode ? `Select ${photo.src.split("/").pop()}` : "View photo"}
+                      aria-pressed={pickMode ? selected : undefined}
+                      onClick={pickMode ? (e) => {
                         e.stopPropagation();
                         onSelectPhoto?.(photo.src);
                       } : (e) => {
@@ -3194,7 +3231,7 @@ function PhotographyView({ photoGroups, photoEdits, selectedPhotoSrc, photoPickM
                         padding: 0,
                         border: "none",
                         background: "none",
-                        cursor: photoPickMode ? "pointer" : "none",
+                        cursor: pickMode ? "pointer" : "none",
                         flexShrink: 0,
                       }}
                     >
