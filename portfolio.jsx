@@ -91,8 +91,8 @@ const PROJECTS = [
       body: "Turn on proof for any habit. When you complete it, you attach a photo and your partner confirms it before it counts."
     },
     {
-      title: "Achievements and stats",
-      body: "Earn badges for showing up, and see streaks, your best run, and 30-day consistency for every habit."
+      title: "Achievements",
+      body: "Earn badges for showing up, from a first step to a perfect week."
     }
   ],
   closing: "Simul is coming soon to the App Store."
@@ -1697,12 +1697,6 @@ const PROJECT_STORY = {
     eyebrow: "Achievements",
     title: "Celebrate every win",
     body: "Badges mark the moments that matter, from a first step to a perfect week. A few are secret, so there is always something left to find as you keep showing up."
-  },
-  {
-    img: "assets/Simul_Screenshots/Device-6.png",
-    eyebrow: "Stats",
-    title: "Watch your streaks grow",
-    body: "Every habit has its own stats: current streak, best streak, 30-day completion, and total check-ins, plus a consistency chart that shows what is working and what is slipping."
   }
   ],
   fovere: [
