@@ -2314,9 +2314,11 @@ function ProjectsView({ layout, onOpenProject }) {
 /* ============================================================
    PHOTOGRAPHY  — horizontal collage, scroll-jacked
    ============================================================ */
-const PHOTO_CAMERA_SRC = "assets/sony-cybershot-camera.png";
-const PHOTO_CAMERA_LABEL = "Sony Cyber-shot DSC-W320";
-const PHOTO_NAV = [PHOTO_CAMERA_LABEL];
+const PHOTO_CAMERAS = [
+  { id: "sony", src: "assets/sony-cybershot-camera.png", label: "Sony Cyber-shot DSC-W320", hasPhotos: true },
+  { id: "nikon", src: "assets/nikon-d90-camera.png", label: "Nikon D90", hasPhotos: false }
+];
+const PHOTO_NAV = PHOTO_CAMERAS.map((c) => c.label);
 
 const CAMARITA_IMAGES = [
   "Images_camarita/DSC02823.JPG",
@@ -2933,11 +2935,74 @@ function NavCursor() {
   );
 }
 
+const IconChevron = ({ dir }) => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d={dir < 0 ? "M6 15l6-6 6 6" : "M6 9l6 6 6-6"} />
+  </svg>
+);
+
+function PhotoCameraPicker({ cameras, activeIndex, onChange }) {
+  const arrow = (dir) => {
+    const enabled = activeIndex + dir >= 0 && activeIndex + dir < cameras.length;
+    return (
+      <button
+        type="button"
+        className="photo-camera-arrow"
+        aria-label={dir < 0 ? "Previous camera" : "Next camera"}
+        disabled={!enabled}
+        onClick={() => onChange(activeIndex + dir)}>
+        <IconChevron dir={dir} />
+      </button>);
+  };
+
+  return (
+    <div className="photo-camera-picker" role="group" aria-label="Cameras">
+      {arrow(-1)}
+      <div className="photo-camera-picker__stage">
+        {cameras.map((c, i) => {
+          const d = i - activeIndex;
+          const dist = Math.abs(d);
+          const active = d === 0;
+          return (
+            <figure
+              key={c.id}
+              className={`photo-camera-picker__item${active ? " is-active" : ""}`}
+              aria-hidden={dist > 1 ? true : undefined}
+              style={{
+                "--d": d,
+                "--s": active ? 1 : dist === 1 ? 0.5 : 0.35,
+                opacity: active ? 1 : dist === 1 ? 0.4 : 0,
+                pointerEvents: dist > 1 ? "none" : undefined
+              }}>
+              <button
+                type="button"
+                className="photo-camera-picker__btn"
+                tabIndex={active ? -1 : 0}
+                aria-label={active ? c.label : `Show ${c.label}`}
+                onClick={() => !active && onChange(i)}>
+                <img
+                  src={c.src}
+                  alt={active ? c.label : ""}
+                  draggable="false"
+                  className="photo-camera-intro__img" />
+              </button>
+              <figcaption className="photo-camera-picker__caption" style={{ opacity: active ? 1 : 0 }}>
+                <Mono>{c.label}</Mono>
+              </figcaption>
+            </figure>);
+        })}
+      </div>
+      {arrow(1)}
+    </div>);
+}
+
 function PhotographyView({ photoGroups, photoEdits, selectedPhotoSrc, photoPickMode, onSelectPhoto, photoGalleryStyle }) {
   const scrollRef = useRef(null);
   const smoothRef = useRef({ target: null, raf: null });
   const showSmoothEye = !photoPickMode;
   const [lightboxSrc, setLightboxSrc] = useState(null);
+  const [cameraIndex, setCameraIndex] = useState(0);
+  const activeCamera = PHOTO_CAMERAS[cameraIndex];
   const openLightbox = useCallback((src) => setLightboxSrc(src), []);
   const closeLightbox = useCallback(() => setLightboxSrc(null), []);
   const reducedMotion = useRef(
@@ -2987,6 +3052,29 @@ function PhotographyView({ photoGroups, photoEdits, selectedPhotoSrc, photoPickM
     }
     runSmoothScroll();
   }, [runSmoothScroll]);
+
+  const selectCamera = useCallback((i) => {
+    if (i < 0 || i >= PHOTO_CAMERAS.length) return;
+    setCameraIndex(i);
+    const el = scrollRef.current;
+    if (el) {
+      stopSmooth();
+      smoothRef.current.target = null;
+      el.scrollLeft = 0;
+    }
+  }, [stopSmooth]);
+
+  /* up / down arrow keys switch camera */
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
+      if (lightboxSrc) return;
+      e.preventDefault();
+      selectCamera(cameraIndex + (e.key === "ArrowUp" ? -1 : 1));
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [cameraIndex, lightboxSrc, selectCamera]);
 
   /* lock body scroll while this view is mounted */
   useEffect(() => {
@@ -3048,7 +3136,7 @@ function PhotographyView({ photoGroups, photoEdits, selectedPhotoSrc, photoPickM
           msOverflowStyle: "none",
         }}
       >
-        <figure
+        <div
           className="photo-camera-intro"
           style={{
             flexShrink: 0,
@@ -3057,31 +3145,23 @@ function PhotographyView({ photoGroups, photoEdits, selectedPhotoSrc, photoPickM
             flexDirection: "column",
             alignItems: "center",
             justifyContent: "center",
-            gap: 0,
-            margin: 0,
             paddingRight: "clamp(4px, 0.8vw, 10px)",
           }}
         >
-          <img
-            src={PHOTO_CAMERA_SRC}
-            alt={PHOTO_CAMERA_LABEL}
-            draggable="false"
-            className="photo-camera-intro__img"
-            style={{
-              height: "clamp(140px, 28vh, 280px)",
-              width: "auto",
-              maxWidth: "min(20vw, 240px)",
-              display: "block",
-              objectFit: "contain",
-              marginBottom: "-2px",
-            }}
+          <PhotoCameraPicker
+            cameras={PHOTO_CAMERAS}
+            activeIndex={cameraIndex}
+            onChange={selectCamera}
           />
-          <figcaption style={{ margin: 0, lineHeight: 1, marginTop: "-4px" }}>
-            <Mono>{PHOTO_CAMERA_LABEL}</Mono>
-          </figcaption>
-        </figure>
+        </div>
 
-        {photoGroups.map((group, gi) => (
+        {!activeCamera.hasPhotos && (
+          <div style={{ flexShrink: 0, alignSelf: "center", paddingLeft: "clamp(16px, 3vw, 48px)" }}>
+            <Mono style={{ color: "var(--ink-3)" }}>Photos coming soon</Mono>
+          </div>
+        )}
+
+        {activeCamera.hasPhotos && photoGroups.map((group, gi) => (
           <div
             key={gi}
             style={{
@@ -3142,15 +3222,22 @@ function PhotographyView({ photoGroups, photoEdits, selectedPhotoSrc, photoPickM
         borderTop: "1px solid var(--line)",
         flexShrink: 0,
       }}>
-        {PHOTO_NAV.map((item) => (
-          <span key={item} className="photo-nav-item" style={{
-            fontFamily: "var(--font-meta)",
-            fontSize: "0.62rem",
-            letterSpacing: "var(--meta-tracking)",
-            textTransform: "var(--meta-transform)",
-            color: "var(--ink-3)",
-            cursor: "pointer",
-          }}>{item}</span>
+        {PHOTO_CAMERAS.map((c, i) => (
+          <button
+            key={c.id}
+            type="button"
+            className="photo-nav-item"
+            onClick={() => selectCamera(i)}
+            aria-current={i === cameraIndex ? "true" : undefined}
+            style={{
+              all: "unset",
+              fontFamily: "var(--font-meta)",
+              fontSize: "0.62rem",
+              letterSpacing: "var(--meta-tracking)",
+              textTransform: "var(--meta-transform)",
+              color: i === cameraIndex ? "var(--ink)" : "var(--ink-3)",
+              cursor: "pointer",
+            }}>{c.label}</button>
         ))}
       </nav>
 
@@ -4833,6 +4920,68 @@ styleEl.textContent = `
     pointer-events: none;
     user-select: none;
   }
+  .photo-camera-picker {
+    --cam-w: min(20vw, 240px, 30vh);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+  .photo-camera-picker__stage {
+    position: relative;
+    width: var(--cam-w);
+    height: calc(var(--cam-w) * 1.65);
+  }
+  .photo-camera-picker__item {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: var(--cam-w);
+    margin: 0;
+    transform: translate(-50%, calc(-50% + var(--d) * var(--cam-w) * 0.64)) scale(var(--s));
+    transition: transform .5s cubic-bezier(.2, .7, .2, 1), opacity .35s ease;
+  }
+  .photo-camera-picker__btn {
+    all: unset;
+    display: block;
+    width: 100%;
+    cursor: pointer;
+  }
+  .photo-camera-picker__item.is-active .photo-camera-picker__btn { cursor: default; }
+  .photo-camera-picker__btn img {
+    display: block;
+    width: 100%;
+    height: auto;
+    object-fit: contain;
+  }
+  .photo-camera-picker__btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+  .photo-camera-picker__caption {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    margin: 2px 0 0;
+    white-space: nowrap;
+    line-height: 1;
+    transition: opacity .3s ease;
+  }
+  .photo-camera-arrow {
+    all: unset;
+    box-sizing: border-box;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 1px solid var(--line);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--ink-2);
+    cursor: pointer;
+    transition: color .2s ease, border-color .2s ease, opacity .2s ease;
+  }
+  .photo-camera-arrow:hover:not(:disabled) { color: var(--ink); border-color: var(--ink-3); }
+  .photo-camera-arrow:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .photo-camera-arrow:disabled { opacity: .25; cursor: default; }
   .photo-nav-item { transition: color .2s ease; }
   .photo-nav-item:hover { color: var(--ink) !important; }
   .photo-frame {
@@ -5133,8 +5282,8 @@ styleEl.textContent = `
     .photography-view {
       height: calc(100dvh - var(--photo-header-h)) !important;
     }
-    .photo-camera-intro__img {
-      max-width: min(36vw, 180px) !important;
+    .photo-camera-picker {
+      --cam-w: min(36vw, 180px, 30vh);
     }
     .fovere-story__step-img,
     .fovere-story__cutout-img.fovere-story__step-img {
