@@ -2317,12 +2317,12 @@ function ProjectsView({ layout, onOpenProject }) {
 const D90_IMAGES = [
   "Images_d90/DSC_0482.jpg",
   "Images_d90/DSC_0519.jpg",
-  "Images_d90/DSC_0578.jpg",
+  "Images_d90/DSC_0675.jpg",
   "Images_d90/DSC_0546.jpg",
   "Images_d90/DSC_0602.jpg",
   "Images_d90/DSC_0669.jpg",
   "Images_d90/DSC_0672.jpg",
-  "Images_d90/DSC_0675.jpg",
+  "Images_d90/DSC_0578.jpg",
   "Images_d90/DSC_0677.jpg",
   "Images_d90/DSC_0678.jpg",
 ];
@@ -2589,9 +2589,9 @@ const PHOTO_EDITS = {
 
 const PHOTO_GALLERY_STYLE_DEFAULTS = {
   shadow: true,
-  shadowAmount: 65,
+  shadowAmount: 80,
   rounded: true,
-  cornerRadius: 6,
+  cornerRadius: 4,
 };
 
 function photoGalleryStyleVars(style) {
