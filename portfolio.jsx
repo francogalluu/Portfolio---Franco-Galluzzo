@@ -3059,7 +3059,6 @@ function PhotographyView({ photoGroups, photoEdits, selectedPhotoSrc, photoPickM
   const [lightboxSrc, setLightboxSrc] = useState(null);
   const pickMode = photoPickMode;
   const showSmoothEye = !pickMode;
-  const activeGroups = photoGroups;
   const openLightbox = useCallback((src) => setLightboxSrc(src), []);
   const closeLightbox = useCallback(() => setLightboxSrc(null), []);
   const reducedMotion = useRef(
@@ -3113,13 +3112,45 @@ function PhotographyView({ photoGroups, photoEdits, selectedPhotoSrc, photoPickM
   const selectCamera = useCallback((i) => {
     if (i < 0 || i >= PHOTO_CAMERAS.length) return;
     onCameraChange(i);
-    const el = scrollRef.current;
-    if (el) {
-      stopSmooth();
-      smoothRef.current.target = null;
-      el.scrollLeft = 0;
+  }, [onCameraChange]);
+
+  /* Switching camera: the current photos slide out the way the cameras move, then the new set slides in.
+     Edits inside the same camera (reorder, delete) swap in place, without the transition. */
+  const [shown, setShown] = useState({ index: cameraIndex, groups: photoGroups });
+  const [setPhase, setSetPhase] = useState("idle"); // idle | out | in
+  const shownRef = useRef(shown);
+  shownRef.current = shown;
+  const slideDir = useRef(1);
+  const phaseTimers = useRef([]);
+  useEffect(() => () => phaseTimers.current.forEach(clearTimeout), []);
+  useEffect(() => {
+    const cur = shownRef.current;
+    phaseTimers.current.forEach(clearTimeout);
+    phaseTimers.current = [];
+    if (cur.index === cameraIndex) {
+      /* same camera as what is on screen (an edit, or the user switched back mid-transition) */
+      setSetPhase("idle");
+      if (cur.groups !== photoGroups) setShown({ index: cameraIndex, groups: photoGroups });
+      return;
     }
-  }, [stopSmooth, onCameraChange]);
+    slideDir.current = cameraIndex > cur.index ? 1 : -1;
+    const swap = () => {
+      const el = scrollRef.current;
+      if (el) {
+        stopSmooth();
+        smoothRef.current.target = null;
+        el.scrollLeft = 0;
+      }
+      setShown({ index: cameraIndex, groups: photoGroups });
+    };
+    if (reducedMotion.current) { swap(); return; }
+    setSetPhase("out");
+    phaseTimers.current = [
+      setTimeout(() => { swap(); setSetPhase("in"); }, 260),
+      setTimeout(() => setSetPhase("idle"), 260 + 520),
+    ];
+  }, [cameraIndex, photoGroups, stopSmooth]);
+  const activeGroups = shown.groups;
 
   /* up / down arrow keys switch camera */
   useEffect(() => {
@@ -3212,6 +3243,10 @@ function PhotographyView({ photoGroups, photoEdits, selectedPhotoSrc, photoPickM
           />
         </div>
 
+        <div
+          className={`photo-strip-set photo-strip-set--${setPhase}`}
+          style={{ "--dir": slideDir.current }}
+        >
         {activeGroups.length === 0 && (
           <div style={{ flexShrink: 0, alignSelf: "center", paddingLeft: "clamp(16px, 3vw, 48px)" }}>
             <Mono style={{ color: "var(--ink-3)" }}>Photos coming soon</Mono>
@@ -3267,6 +3302,7 @@ function PhotographyView({ photoGroups, photoEdits, selectedPhotoSrc, photoPickM
             ))}
           </div>
         ))}
+        </div>
       </div>
 
       {/* ── bottom nav ── */}
@@ -4993,6 +5029,28 @@ styleEl.textContent = `
   .photo-camera-intro__img {
     pointer-events: none;
     user-select: none;
+  }
+  .photo-strip-set {
+    display: flex;
+    flex-shrink: 0;
+    align-items: stretch;
+    gap: clamp(24px, 3.5vw, 52px);
+  }
+  .photo-strip-set--out {
+    opacity: 0;
+    transform: translateY(calc(var(--dir) * -48px)) scale(.97);
+    transition: transform .26s cubic-bezier(.4, 0, 1, 1), opacity .22s ease;
+    pointer-events: none;
+  }
+  .photo-strip-set--in {
+    animation: photoSetIn .52s cubic-bezier(.2, .7, .2, 1) both;
+  }
+  @keyframes photoSetIn {
+    from { opacity: 0; transform: translateY(calc(var(--dir) * 48px)) scale(.97); }
+    to { opacity: 1; transform: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .photo-strip-set--out, .photo-strip-set--in { animation: none; transition: none; opacity: 1; transform: none; }
   }
   .photo-camera-picker {
     --cam-w: min(20vw, 240px, 30vh);
