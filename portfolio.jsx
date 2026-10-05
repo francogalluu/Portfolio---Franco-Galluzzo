@@ -2317,30 +2317,24 @@ function ProjectsView({ layout, onOpenProject }) {
 const D90_IMAGES = [
   "Images_d90/DSC_0482.jpg",
   "Images_d90/DSC_0519.jpg",
-  "Images_d90/DSC_0598.jpg",
   "Images_d90/DSC_0578.jpg",
   "Images_d90/DSC_0546.jpg",
-  "Images_d90/DSC_0608.jpg",
   "Images_d90/DSC_0602.jpg",
-  "Images_d90/DSC_0614.jpg",
   "Images_d90/DSC_0669.jpg",
   "Images_d90/DSC_0672.jpg",
   "Images_d90/DSC_0675.jpg",
   "Images_d90/DSC_0677.jpg",
   "Images_d90/DSC_0678.jpg",
-  "Images_d90/DSC_0680.jpg",
 ];
 
 /* Frames use each photo's real aspect ratio (3:2 landscapes stack in pairs), so nothing is cropped. */
 const D90_LAYOUT_GROUPS = [
   { cols: [[{ ar: "1.506" }, { ar: "1.506" }]] },
-  { cols: [[{ ar: "0.664" }], [{ ar: "0.664" }]] },
-  { cols: [[{ ar: "1.506" }, { ar: "1.506" }]] },
+  { cols: [[{ ar: "0.664" }]] },
   { cols: [[{ ar: "1.506" }, { ar: "1.506" }]] },
   { cols: [[{ ar: "1.506" }, { ar: "1.506" }]] },
   { cols: [[{ ar: "1.209" }]] },
   { cols: [[{ ar: "1.506" }, { ar: "1.506" }]] },
-  { cols: [[{ ar: "1.506" }]] },
 ];
 
 
@@ -2370,18 +2364,14 @@ const CAMARITA_IMAGES = [
 const D90_ASPECTS = {
   "Images_d90/DSC_0482.jpg": 1.506,
   "Images_d90/DSC_0519.jpg": 1.506,
-  "Images_d90/DSC_0598.jpg": 0.664,
   "Images_d90/DSC_0578.jpg": 0.664,
   "Images_d90/DSC_0546.jpg": 1.506,
-  "Images_d90/DSC_0608.jpg": 1.507,
   "Images_d90/DSC_0602.jpg": 1.506,
-  "Images_d90/DSC_0614.jpg": 1.506,
   "Images_d90/DSC_0669.jpg": 1.506,
   "Images_d90/DSC_0672.jpg": 1.506,
   "Images_d90/DSC_0675.jpg": 1.209,
   "Images_d90/DSC_0677.jpg": 1.506,
   "Images_d90/DSC_0678.jpg": 1.506,
-  "Images_d90/DSC_0680.jpg": 1.506,
 };
 
 const PHOTO_CAMERAS = [
