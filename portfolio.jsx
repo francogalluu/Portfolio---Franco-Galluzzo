@@ -76,6 +76,8 @@ const PROJECTS = [
     "I designed and built it on React Native and Expo for iOS, with Supabase handling sign-in, private data, and real-time sync between both phones. The walkthrough below follows a normal day: what you do together, what you do alone, and how you prove it."
   ],
   tagline: "Build habits, together",
+  promoVideo: "assets/simul-promo.mp4",
+  promoPoster: "assets/simul-promo-poster.jpg",
   intro: "Simul is a habit tracker for two. Create a household with your partner, keep shared habits next to your own, and attach a photo as proof when you complete one. Your partner approves it with a tap.",
   sections: [
     {
@@ -2007,6 +2009,31 @@ function ProjectDetailView({ project, onBack }) {
             }}>{para}</p>
           )
           }
+        </div>
+        }
+
+        {project.promoVideo &&
+        <div
+          className="project-promo"
+          style={{
+            padding: "clamp(24px, 4vw, 48px) var(--pad-x) 0",
+            maxWidth: "var(--maxw)",
+            margin: "0 auto"
+          }}>
+          <video
+            src={project.promoVideo}
+            poster={project.promoPoster}
+            controls
+            playsInline
+            preload="none"
+            style={{
+              display: "block",
+              width: "100%",
+              height: "auto",
+              aspectRatio: "16 / 9",
+              borderRadius: 16,
+              background: "#000"
+            }} />
         </div>
         }
 
