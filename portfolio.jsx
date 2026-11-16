@@ -95,7 +95,8 @@ const PROJECTS = [
       body: "Earn badges for showing up, from a first step to a perfect week."
     }
   ],
-  closing: "Simul is coming soon to the App Store."
+  closing: "Download Simul and start building habits with someone who keeps you honest.",
+  appStoreUrl: "https://apps.apple.com/ci/app/simul-shared-habits/id6814307152"
 },
 {
   n: "02",
@@ -2027,7 +2028,7 @@ function ProjectDetailView({ project, onBack }) {
             <span className="fovere-cta__icon-wrap" aria-hidden="true">
               <img
                 className="fovere-cta__icon"
-                src="assets/fovere-icon.png"
+                src={project.icon}
                 alt=""
                 width={52}
                 height={52} />
