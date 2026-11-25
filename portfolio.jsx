@@ -2353,6 +2353,11 @@ const D90_IMAGES = [
   "Images_d90/DSC_0578.jpg",
   "Images_d90/DSC_0677.jpg",
   "Images_d90/DSC_0678.jpg",
+  "Images_d90/DSC_0725.jpg",
+  "Images_d90/DSC_0756.jpg",
+  "Images_d90/DSC_0769.jpg",
+  "Images_d90/DSC_0766.jpg",
+  "Images_d90/DSC_0774.jpg",
 ];
 
 /* Frames use each photo's real aspect ratio (3:2 landscapes stack in pairs), so nothing is cropped. */
@@ -2363,6 +2368,9 @@ const D90_LAYOUT_GROUPS = [
   { cols: [[{ ar: "1.506" }, { ar: "1.506" }]] },
   { cols: [[{ ar: "1.209" }]] },
   { cols: [[{ ar: "1.506" }, { ar: "1.506" }]] },
+  { cols: [[{ ar: "1.506" }, { ar: "1.506" }]] },
+  { cols: [[{ ar: "1.506" }, { ar: "1.506" }]] },
+  { cols: [[{ ar: "0.664" }]] },
 ];
 
 
@@ -2400,6 +2408,11 @@ const D90_ASPECTS = {
   "Images_d90/DSC_0675.jpg": 1.209,
   "Images_d90/DSC_0677.jpg": 1.506,
   "Images_d90/DSC_0678.jpg": 1.506,
+  "Images_d90/DSC_0725.jpg": 1.506,
+  "Images_d90/DSC_0756.jpg": 1.506,
+  "Images_d90/DSC_0769.jpg": 1.506,
+  "Images_d90/DSC_0766.jpg": 1.506,
+  "Images_d90/DSC_0774.jpg": 0.664,
 };
 
 const PHOTO_CAMERAS = [
@@ -2613,6 +2626,7 @@ const PHOTO_EDITS = {
   "Images_camarita/DSC03571.JPG": { ar: 1.61, posX: 100, posY: 88 },
   "Images_camarita/DSC03658.JPG": { ar: 1.61, posX: 0, posY: 0 },
   "Images_camarita/DSC03883.JPG": { ar: 0.5, posY: 100 },
+  "Images_d90/DSC_0769.jpg": { ar: 1.33 },
 };
 
 const PHOTO_GALLERY_STYLE_DEFAULTS = {
@@ -3316,6 +3330,8 @@ function PhotographyView({ photoGroups, photoEdits, selectedPhotoSrc, photoPickM
                         background: "none",
                         cursor: pickMode ? "pointer" : "none",
                         flexShrink: 0,
+                        /* hug the photo: a narrower frame in a stacked column must not stretch to the wider one */
+                        alignSelf: "flex-start",
                       }}
                     >
                       <PhotoGalleryFrame
