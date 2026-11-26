@@ -2634,6 +2634,7 @@ const PHOTO_EDITS = {
   "Images_camarita/DSC03658.JPG": { ar: 1.61, posX: 0, posY: 0 },
   "Images_camarita/DSC03883.JPG": { ar: 0.5, posY: 100 },
   "Images_d90/DSC_0769.jpg": { ar: 1.33 },
+  "Images_d90/DSC_0531-edit.jpg": { ar: 1.506 }, // same width as DSC_0602 stacked above it
   "Images_d90/DSC_0675.jpg": { size: "full" },
   "Images_d90/DSC_0774.jpg": { size: "full" },
   "Images_d90/DSC_0434.jpg": { size: "full" },
