@@ -2358,20 +2358,9 @@ const D90_IMAGES = [
   "Images_d90/DSC_0766.jpg",
   "Images_d90/DSC_0774.jpg",
   "Images_d90/DSC_0434.jpg",
+  "Images_d90/DSC_0531.jpg",
 ];
 
-/* Frames use each photo's real aspect ratio (3:2 landscapes stack in pairs), so nothing is cropped. */
-const D90_LAYOUT_GROUPS = [
-  { cols: [[{ ar: "1.506" }, { ar: "1.506" }]] },
-  { cols: [[{ ar: "0.664" }]] },
-  { cols: [[{ ar: "1.506" }, { ar: "1.506" }]] },
-  { cols: [[{ ar: "1.506" }, { ar: "1.506" }]] },
-  { cols: [[{ ar: "1.506" }, { ar: "1.506" }]] },
-  { cols: [[{ ar: "1.506" }, { ar: "1.506" }]] },
-  { cols: [[{ ar: "1.506" }, { ar: "1.506" }]] },
-  { cols: [[{ ar: "0.664" }]] },
-  { cols: [[{ ar: "1.506" }]] },
-];
 
 
 const CAMARITA_IMAGES = [
@@ -2413,11 +2402,13 @@ const D90_ASPECTS = {
   "Images_d90/DSC_0766.jpg": 1.506,
   "Images_d90/DSC_0774.jpg": 0.664,
   "Images_d90/DSC_0434.jpg": 1.506,
+  "Images_d90/DSC_0531.jpg": 1.506,
 };
 
 const PHOTO_CAMERAS = [
   { id: "sony", src: "assets/sony-cybershot-camera.png", label: "Sony Cyber-shot DSC-W320", images: CAMARITA_IMAGES },
-  { id: "nikon", src: "assets/nikon-d90-camera.png", label: "Nikon D90", images: D90_IMAGES, layout: D90_LAYOUT_GROUPS, aspects: D90_ASPECTS }
+  /* flow: the layout follows each photo's own size (PHOTO_EDITS[src].size), so moving a photo keeps its size */
+  { id: "nikon", src: "assets/nikon-d90-camera.png", label: "Nikon D90", images: D90_IMAGES, flow: true, aspects: D90_ASPECTS }
 ];
 const PHOTO_NAV = PHOTO_CAMERAS.map((c) => c.label);
 
@@ -2580,7 +2571,29 @@ function buildPhotoGroups(images) {
   return assignPhotoSources(PHOTO_LAYOUT_GROUPS, images);
 }
 
-function buildCameraGroups(camera, images) {
+/* Flow layout: a "full" photo takes the whole height; "half" photos stack two per column.
+   Frames keep each photo's real aspect ratio unless an edit overrides it. */
+function buildFlowGroups(camera, images, edits) {
+  const groups = [];
+  let openCol = null; // a half-height column still waiting for its second photo
+  for (const src of images) {
+    const base = { src, ar: String(camera.aspects?.[src] ?? 1.5) };
+    if (effectivePhotoEdit(base, edits?.[src]).size === "full") {
+      groups.push({ cols: [[{ ...base, colLength: 1 }]] });
+      openCol = null;
+    } else if (openCol) {
+      openCol.push({ ...base, colLength: 2 });
+      openCol = null;
+    } else {
+      openCol = [{ ...base, colLength: 2 }];
+      groups.push({ cols: [openCol] });
+    }
+  }
+  return groups;
+}
+
+function buildCameraGroups(camera, images, edits) {
+  if (camera.flow) return buildFlowGroups(camera, images, edits);
   if (!camera.layout) return buildPhotoGroups(images);
   const groups = assignPhotoSources(camera.layout, images);
   if (!camera.aspects) return groups;
@@ -2627,6 +2640,10 @@ const PHOTO_EDITS = {
   "Images_camarita/DSC03658.JPG": { ar: 1.61, posX: 0, posY: 0 },
   "Images_camarita/DSC03883.JPG": { ar: 0.5, posY: 100 },
   "Images_d90/DSC_0769.jpg": { ar: 1.33 },
+  "Images_d90/DSC_0675.jpg": { size: "full" },
+  "Images_d90/DSC_0774.jpg": { size: "full" },
+  "Images_d90/DSC_0434.jpg": { size: "full" },
+  "Images_d90/DSC_0531.jpg": { size: "full" },
 };
 
 const PHOTO_GALLERY_STYLE_DEFAULTS = {
@@ -2691,6 +2708,7 @@ function photoDefaults(photo) {
     zoom: 1,
     frameH: 100,
     ar: Number(photo.ar),
+    size: "half",
   };
 }
 
@@ -3095,9 +3113,88 @@ function PhotoCameraPicker({ cameras, activeIndex, onChange }) {
     </div>);
 }
 
-function PhotographyView({ photoGroups, photoEdits, selectedPhotoSrc, photoPickMode, onSelectPhoto, photoGalleryStyle, cameraIndex, onCameraChange }) {
+function PhotographyView({ photoGroups, photoEdits, selectedPhotoSrc, photoPickMode, onSelectPhoto, onMovePhoto, photoGalleryStyle, cameraIndex, onCameraChange }) {
   const scrollRef = useRef(null);
   const smoothRef = useRef({ target: null, raf: null });
+  const justDraggedRef = useRef(false);
+
+  /* Edit mode: drag a photo onto another to reorder. A press without movement stays a click. */
+  const startPhotoDrag = useCallback((e, src) => {
+    if (!photoPickMode || !onMovePhoto || e.button !== 0) return;
+    const frame = e.currentTarget;
+    const sx = e.clientX, sy = e.clientY;
+    let lastX = sx, lastY = sy, started = false, drop = null, raf = null, ghost = null, line = null;
+
+    const place = () => {
+      ghost.style.transform = `translate(${lastX + 12}px, ${lastY + 12}px) rotate(-2deg)`;
+      const el = document.elementFromPoint(lastX, lastY)?.closest("[data-photo-src]");
+      if (!el || el.dataset.photoSrc === src) { drop = null; line.style.display = "none"; return; }
+      const r = el.getBoundingClientRect();
+      const after = lastX > r.left + r.width / 2;
+      drop = { src: el.dataset.photoSrc, after };
+      Object.assign(line.style, {
+        display: "block", top: `${r.top}px`, height: `${r.height}px`,
+        left: `${after ? r.right + 6 : r.left - 10}px`,
+      });
+    };
+    const tick = () => {
+      const el = scrollRef.current;
+      if (el) {
+        const sr = el.getBoundingClientRect(), edge = 90;
+        let v = 0;
+        if (lastX < sr.left + edge) v = -Math.ceil((sr.left + edge - lastX) / 6);
+        else if (lastX > sr.right - edge) v = Math.ceil((lastX - (sr.right - edge)) / 6);
+        if (v) { smoothRef.current.target = null; el.scrollLeft += v; place(); }
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    const begin = () => {
+      started = true;
+      ghost = document.createElement("div");
+      ghost.className = "photo-drag-ghost";
+      const ar = frame.offsetWidth / Math.max(1, frame.offsetHeight);
+      ghost.style.width = "140px";
+      ghost.style.height = `${Math.round(140 / ar)}px`;
+      const img = document.createElement("img");
+      img.src = frame.querySelector("img")?.currentSrc || "";
+      ghost.appendChild(img);
+      line = document.createElement("div");
+      line.className = "photo-drop-line";
+      document.body.append(ghost, line);
+      frame.classList.add("photo-frame--dragging");
+      document.body.classList.add("photo-dragging");
+      raf = requestAnimationFrame(tick);
+    };
+    const move = (ev) => {
+      lastX = ev.clientX; lastY = ev.clientY;
+      if (!started) {
+        if (Math.hypot(lastX - sx, lastY - sy) < 6) return;
+        begin();
+      }
+      place();
+    };
+    const finish = (commit) => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onCancel);
+      window.removeEventListener("keydown", onKey, true);
+      if (!started) return;
+      cancelAnimationFrame(raf);
+      ghost.remove(); line.remove();
+      frame.classList.remove("photo-frame--dragging");
+      document.body.classList.remove("photo-dragging");
+      justDraggedRef.current = true; // swallow the click that follows the drop
+      setTimeout(() => { justDraggedRef.current = false; }, 0);
+      if (commit && drop) onMovePhoto(src, drop.src, drop.after);
+    };
+    const onUp = () => finish(true);
+    const onCancel = () => finish(false);
+    const onKey = (ev) => { if (ev.key === "Escape" && started) { ev.stopPropagation(); finish(false); } };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onCancel);
+    window.addEventListener("keydown", onKey, true);
+  }, [photoPickMode, onMovePhoto]);
   const [lightboxSrc, setLightboxSrc] = useState(null);
   const pickMode = photoPickMode;
   const showSmoothEye = !pickMode;
@@ -3317,8 +3414,11 @@ function PhotographyView({ photoGroups, photoEdits, selectedPhotoSrc, photoPickM
                       className={`photo-frame${pickMode && selected ? " photo-frame--selected" : ""}`}
                       aria-label={pickMode ? `Select ${photo.src.split("/").pop()}` : "View photo"}
                       aria-pressed={pickMode ? selected : undefined}
+                      data-photo-src={photo.src}
+                      onPointerDown={pickMode ? (e) => startPhotoDrag(e, photo.src) : undefined}
                       onClick={pickMode ? (e) => {
                         e.stopPropagation();
+                        if (justDraggedRef.current) return;
                         onSelectPhoto?.(photo.src);
                       } : (e) => {
                         e.stopPropagation();
@@ -3328,7 +3428,8 @@ function PhotographyView({ photoGroups, photoEdits, selectedPhotoSrc, photoPickM
                         padding: 0,
                         border: "none",
                         background: "none",
-                        cursor: pickMode ? "pointer" : "none",
+                        cursor: pickMode ? "grab" : "none",
+                        touchAction: pickMode ? "none" : undefined,
                         flexShrink: 0,
                         /* hug the photo: a narrower frame in a stacked column must not stretch to the wider one */
                         alignSelf: "flex-start",
@@ -3519,9 +3620,11 @@ function PhotoEditorPanel({
       const base = photoDefaults(p);
       const changed =
         e.posX !== base.posX || e.posY !== base.posY || (e.zoom ?? 1) !== (base.zoom ?? 1) ||
-        (e.frameH ?? 100) !== 100 || e.ar !== base.ar;
+        (e.frameH ?? 100) !== 100 || e.ar !== base.ar ||
+        (camera?.flow && (e.size !== base.size || e.size !== (PHOTO_EDITS[p.src]?.size ?? "half")));
       if (!changed) return null;
       const row = { file: photoFileName(p.src), src: p.src, ar: e.ar };
+      if (camera?.flow) row.size = e.size;
       if (e.posX !== 50) row.posX = e.posX;
       if (e.posY !== 50) row.posY = e.posY;
       if ((e.zoom ?? 1) !== 1) row.zoom = e.zoom ?? 1;
@@ -3569,7 +3672,9 @@ function PhotoEditorPanel({
       </div>
       <div className="photo-editor-panel__body">
         <p className="photo-editor-panel__hint">
-          {camera?.layout ?
+          {camera?.flow ?
+          <>Editing <b>{camera.label}</b>. Drag photos to reorder, pick each photo's size and crop, then use "Copy all edits" / "Copy gallery order" to save them.</> :
+          camera?.layout ?
           <>Editing <b>{camera.label}</b>. Adjust crop and order, then use "Copy all edits" / "Copy gallery order" to save them.</> :
           <>Frames fill the screen below the header. Adjust crop, then copy edits and run
           <code style={{ fontSize: "10px" }}> npm run bake-photos</code> to save real crops.</>}
@@ -3637,6 +3742,14 @@ function PhotoEditorPanel({
           onChange={(v) => patchPhoto({ zoom: v })} />
 
         <TweakSection label="Frame" />
+        {camera?.flow &&
+        <TweakRadio label="Size" value={cur.size}
+          options={[
+            { value: "full", label: "Full height" },
+            { value: "half", label: "Half (stacked)" },
+          ]}
+          onChange={(v) => patchPhoto({ size: v })} />
+        }
         <TweakSlider label="Frame height" value={cur.frameH ?? 100} min={40} max={100} unit="%"
           onChange={(v) => patchPhoto({ frameH: v })} />
         <TweakSlider label="Frame width" value={Math.round(cur.ar * 100) / 100} min={0.5} max={1.8} step={0.01}
@@ -4081,9 +4194,20 @@ function App() {
   viewRef.current = view;
 
   const photoGroups = useMemo(
-    () => buildCameraGroups(activeCamera, galleryImages),
-    [activeCamera, galleryImages]
+    () => buildCameraGroups(activeCamera, galleryImages, photoEdits),
+    [activeCamera, galleryImages, photoEdits]
   );
+  /* drag-to-reorder in Edit mode: put `src` just before/after `targetSrc` */
+  const movePhotoTo = useCallback((src, targetSrc, after) => {
+    setGalleryByCamera((prev) => {
+      const list = prev[activeCamera.id];
+      if (src === targetSrc || !list.includes(src) || !list.includes(targetSrc)) return prev;
+      const next = list.filter((s) => s !== src);
+      next.splice(next.indexOf(targetSrc) + (after ? 1 : 0), 0, src);
+      return { ...prev, [activeCamera.id]: next };
+    });
+    setSelectedPhotoSrc(src);
+  }, [activeCamera.id]);
   const photoList = useMemo(
     () => flattenPhotoList(photoGroups),
     [photoGroups]
@@ -4264,6 +4388,7 @@ function App() {
           selectedPhotoSrc={selectedPhotoSrc}
           photoPickMode={photoPickMode}
           onSelectPhoto={setSelectedPhotoSrc}
+          onMovePhoto={movePhotoTo}
           photoGalleryStyle={photoGalleryStyle}
           cameraIndex={cameraIndex}
           onCameraChange={changeCamera}
@@ -5223,6 +5348,20 @@ styleEl.textContent = `
   .photo-frame--selected {
     outline: 2px solid var(--accent);
     outline-offset: 3px;
+  }
+  /* Edit mode drag-to-reorder */
+  .photo-frame--dragging { opacity: .3; }
+  body.photo-dragging, body.photo-dragging * { cursor: grabbing !important; user-select: none; }
+  .photo-drag-ghost {
+    position: fixed; left: 0; top: 0; z-index: 9999; pointer-events: none;
+    border-radius: 6px; overflow: hidden; opacity: .92;
+    box-shadow: 0 14px 34px rgba(0, 0, 0, .3);
+  }
+  .photo-drag-ghost img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .photo-drop-line {
+    position: fixed; z-index: 9998; width: 4px; border-radius: 4px; display: none;
+    background: var(--accent); pointer-events: none;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent);
   }
   .photo-frame:focus-visible {
     outline: 2px solid var(--accent);
