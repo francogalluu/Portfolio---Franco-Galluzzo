@@ -2346,19 +2346,16 @@ const D90_IMAGES = [
   "Images_d90/DSC_0482.jpg",
   "Images_d90/DSC_0519.jpg",
   "Images_d90/DSC_0675.jpg",
+  "Images_d90/DSC_0769.jpg",
   "Images_d90/DSC_0546.jpg",
   "Images_d90/DSC_0602.jpg",
+  "Images_d90/DSC_0531-edit.jpg",
   "Images_d90/DSC_0669.jpg",
-  "Images_d90/DSC_0672.jpg",
   "Images_d90/DSC_0677.jpg",
-  "Images_d90/DSC_0678.jpg",
+  "Images_d90/DSC_0434.jpg",
   "Images_d90/DSC_0725.jpg",
-  "Images_d90/DSC_0756.jpg",
-  "Images_d90/DSC_0769.jpg",
   "Images_d90/DSC_0766.jpg",
   "Images_d90/DSC_0774.jpg",
-  "Images_d90/DSC_0434.jpg",
-  "Images_d90/DSC_0531.jpg",
 ];
 
 
@@ -2392,17 +2389,14 @@ const D90_ASPECTS = {
   "Images_d90/DSC_0546.jpg": 1.506,
   "Images_d90/DSC_0602.jpg": 1.506,
   "Images_d90/DSC_0669.jpg": 1.506,
-  "Images_d90/DSC_0672.jpg": 1.506,
   "Images_d90/DSC_0675.jpg": 1.209,
   "Images_d90/DSC_0677.jpg": 1.506,
-  "Images_d90/DSC_0678.jpg": 1.506,
   "Images_d90/DSC_0725.jpg": 1.506,
-  "Images_d90/DSC_0756.jpg": 1.506,
   "Images_d90/DSC_0769.jpg": 1.506,
   "Images_d90/DSC_0766.jpg": 1.506,
   "Images_d90/DSC_0774.jpg": 0.664,
   "Images_d90/DSC_0434.jpg": 1.506,
-  "Images_d90/DSC_0531.jpg": 1.506,
+  "Images_d90/DSC_0531-edit.jpg": 1.386,
 };
 
 const PHOTO_CAMERAS = [
@@ -2643,7 +2637,7 @@ const PHOTO_EDITS = {
   "Images_d90/DSC_0675.jpg": { size: "full" },
   "Images_d90/DSC_0774.jpg": { size: "full" },
   "Images_d90/DSC_0434.jpg": { size: "full" },
-  "Images_d90/DSC_0531.jpg": { size: "full" },
+  "Images_d90/DSC_0531-edit.jpg": { size: "full" },
 };
 
 const PHOTO_GALLERY_STYLE_DEFAULTS = {
