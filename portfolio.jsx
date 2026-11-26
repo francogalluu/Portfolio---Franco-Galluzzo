@@ -2350,7 +2350,6 @@ const D90_IMAGES = [
   "Images_d90/DSC_0602.jpg",
   "Images_d90/DSC_0669.jpg",
   "Images_d90/DSC_0672.jpg",
-  "Images_d90/DSC_0578.jpg",
   "Images_d90/DSC_0677.jpg",
   "Images_d90/DSC_0678.jpg",
   "Images_d90/DSC_0725.jpg",
@@ -2358,6 +2357,7 @@ const D90_IMAGES = [
   "Images_d90/DSC_0769.jpg",
   "Images_d90/DSC_0766.jpg",
   "Images_d90/DSC_0774.jpg",
+  "Images_d90/DSC_0434.jpg",
 ];
 
 /* Frames use each photo's real aspect ratio (3:2 landscapes stack in pairs), so nothing is cropped. */
@@ -2366,11 +2366,11 @@ const D90_LAYOUT_GROUPS = [
   { cols: [[{ ar: "0.664" }]] },
   { cols: [[{ ar: "1.506" }, { ar: "1.506" }]] },
   { cols: [[{ ar: "1.506" }, { ar: "1.506" }]] },
-  { cols: [[{ ar: "1.209" }]] },
   { cols: [[{ ar: "1.506" }, { ar: "1.506" }]] },
   { cols: [[{ ar: "1.506" }, { ar: "1.506" }]] },
   { cols: [[{ ar: "1.506" }, { ar: "1.506" }]] },
   { cols: [[{ ar: "0.664" }]] },
+  { cols: [[{ ar: "1.506" }]] },
 ];
 
 
@@ -2400,7 +2400,6 @@ const CAMARITA_IMAGES = [
 const D90_ASPECTS = {
   "Images_d90/DSC_0482.jpg": 1.506,
   "Images_d90/DSC_0519.jpg": 1.506,
-  "Images_d90/DSC_0578.jpg": 0.664,
   "Images_d90/DSC_0546.jpg": 1.506,
   "Images_d90/DSC_0602.jpg": 1.506,
   "Images_d90/DSC_0669.jpg": 1.506,
@@ -2413,6 +2412,7 @@ const D90_ASPECTS = {
   "Images_d90/DSC_0769.jpg": 1.506,
   "Images_d90/DSC_0766.jpg": 1.506,
   "Images_d90/DSC_0774.jpg": 0.664,
+  "Images_d90/DSC_0434.jpg": 1.506,
 };
 
 const PHOTO_CAMERAS = [
