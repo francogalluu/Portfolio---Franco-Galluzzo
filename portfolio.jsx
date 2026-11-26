@@ -2637,7 +2637,6 @@ const PHOTO_EDITS = {
   "Images_d90/DSC_0675.jpg": { size: "full" },
   "Images_d90/DSC_0774.jpg": { size: "full" },
   "Images_d90/DSC_0434.jpg": { size: "full" },
-  "Images_d90/DSC_0531-edit.jpg": { size: "full" },
 };
 
 const PHOTO_GALLERY_STYLE_DEFAULTS = {
