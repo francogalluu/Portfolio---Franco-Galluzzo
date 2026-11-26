@@ -3584,7 +3584,20 @@ function PhotoEditorPanel({
   };
 
   const copyGalleryOrder = () => {
-    const text = JSON.stringify(galleryImages, null, 2);
+    // Flow cameras: one row per photo with its size and any crop/frame changes, so this button alone saves the layout.
+    const rows = camera?.flow ? galleryImages.map((s) => {
+      const p = photoList.find((x) => x.src === s) || { src: s, ar: camera.aspects?.[s] ?? 1.5 };
+      const e = effectivePhotoEdit(p, edits[s]);
+      const base = photoDefaults(p);
+      const row = { src: s, size: e.size };
+      if (e.ar !== base.ar) row.ar = e.ar;
+      if (e.posX !== 50) row.posX = e.posX;
+      if (e.posY !== 50) row.posY = e.posY;
+      if ((e.zoom ?? 1) !== 1) row.zoom = e.zoom;
+      if ((e.frameH ?? 100) !== 100) row.frameH = e.frameH;
+      return row;
+    }) : galleryImages;
+    const text = JSON.stringify(rows, null, 2);
     navigator.clipboard?.writeText(text).catch(() => {});
     window.prompt("Copy gallery order (Ctrl+C):", text);
   };
@@ -3666,7 +3679,7 @@ function PhotoEditorPanel({
       <div className="photo-editor-panel__body">
         <p className="photo-editor-panel__hint">
           {camera?.flow ?
-          <>Editing <b>{camera.label}</b>. Drag photos to reorder, pick each photo's size and crop, then use "Copy all edits" / "Copy gallery order" to save them.</> :
+          <>Editing <b>{camera.label}</b>. Drag photos to reorder, pick each photo's size and crop, then use "Copy gallery (order + sizes)" to save everything.</> :
           camera?.layout ?
           <>Editing <b>{camera.label}</b>. Adjust crop and order, then use "Copy all edits" / "Copy gallery order" to save them.</> :
           <>Frames fill the screen below the header. Adjust crop, then copy edits and run
@@ -3724,7 +3737,7 @@ function PhotoEditorPanel({
           }} />
         }
         <TweakButton label="Delete from gallery" secondary onClick={deletePhoto} />
-        <TweakButton label="Copy gallery order" secondary onClick={copyGalleryOrder} />
+        <TweakButton label={camera?.flow ? "Copy gallery (order + sizes)" : "Copy gallery order"} secondary onClick={copyGalleryOrder} />
 
         <TweakSection label="Crop" />
         <TweakSlider label="Horizontal" value={cur.posX} min={0} max={100} unit="%"
